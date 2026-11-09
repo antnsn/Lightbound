@@ -56,15 +56,22 @@ local function HostileTarget()
 	return UnitExists("target") and UnitCanAttack("player", "target") and not UnitIsDeadOrGhost("target")
 end
 
+-- Undead or demon target. The creature type is a secret value on Forever, so when it can't be read
+-- the range check decides: it returns nil for a target the spell can never hit, true/false otherwise.
+local function ExorcismTarget()
+	local ctype = Clean(UnitCreatureType("target"))
+	if ctype then return EXORCISM_TYPES[ctype] or false end
+	local ok, r = pcall(C_Spell.IsSpellInRange, "Exorcism", "target")
+	if not ok then return false end
+	return Clean(r) ~= nil
+end
+
 -- Procs ---------------------------------------------------------------------------
 local function ProcList()
 	local list = {}
 	if not HostileTarget() then return list end
 	if Known("Hammer of Wrath") and Ready("Hammer of Wrath") then list[#list + 1] = "Hammer of Wrath" end
-	if Known("Exorcism") then
-		local ctype = Clean(UnitCreatureType("target"))
-		if ctype and EXORCISM_TYPES[ctype] and Ready("Exorcism") then list[#list + 1] = "Exorcism" end
-	end
+	if Known("Exorcism") and ExorcismTarget() and Ready("Exorcism") then list[#list + 1] = "Exorcism" end
 	return list
 end
 
