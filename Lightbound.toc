@@ -2,7 +2,7 @@
 ## Title: Lightbound
 ## Notes: Paladin buffing and self-buff helper: one key buffs party/raid (own or raid assignments, PallyPower-compatible), Righteous Fury and aura warnings, seal timer, blessing tracker, Well-Rested and Well Fed warnings. /lb for options.
 ## Author: Rheolux
-## Version: 3.9
+## Version: 3.10
 ## IconTexture: Interface\AddOns\Lightbound\Media\Icon64
 ## SavedVariables: LightboundDB
 

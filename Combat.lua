@@ -15,7 +15,8 @@ local JUDGEMENT_TIME = 10 -- fallback length when the debuff can't be read
 
 local procFrame, procIcons, judgeFrame
 local shown = {}        -- spell -> true while its proc icon is up (for the sound)
-local lastJudge         -- { guid, name, icon, at } from your last Judgement cast
+local lastJudge         -- { name, icon, at } from your last Judgement cast; cleared on target change
+                        -- (the target's GUID is a secret value in combat, so it can't be compared)
 
 local function Known(spell)
 	local ok, info = pcall(function()
@@ -122,7 +123,7 @@ local function UpdateJudgement()
 	end
 	if not db.judgeEnabled or not HostileTarget() or not Known("Judgement") then f:Hide() return end
 	local name, icon, left, unreadable = ReadJudgement()
-	if not name and unreadable and lastJudge and lastJudge.guid == UnitGUID("target") then
+	if not name and unreadable and lastJudge then
 		local l = JUDGEMENT_TIME - (GetTime() - lastJudge.at)
 		if l > 0 then name, icon, left = lastJudge.name, lastJudge.icon, l end
 	end
@@ -208,7 +209,9 @@ function M:Init()
 	ev:RegisterUnitEvent("UNIT_AURA", "target")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 	ev:SetScript("OnEvent", function(_, event, _, _, spellID)
-		if event == "UNIT_SPELLCAST_SUCCEEDED" then
+		if event == "PLAYER_TARGET_CHANGED" then
+			lastJudge = nil
+		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local name = ns.SpellName(spellID)
 			if name == "Judgement" then
 				-- remember which Judgement went out, in case the debuff is hidden in combat
@@ -216,7 +219,7 @@ function M:Init()
 				local seal
 				for bname in pairs(buffs) do if bname:find("^Seal of") then seal = bname end end
 				local jname = seal and seal:gsub("^Seal of ", "Judgement of ") or "Judgement"
-				lastJudge = { guid = UnitGUID("target"), name = jname, icon = seal and Texture(seal), at = GetTime() }
+				lastJudge = { name = jname, icon = seal and Texture(seal), at = GetTime() }
 			end
 		end
 		M:Update()
