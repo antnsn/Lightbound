@@ -1,0 +1,7 @@
+# CurseForge automatic packaging (https://support.curseforge.com/support/solutions/articles/9000197281)
+# Push a tag to release: "v3.9" = release, "v3.9-beta" = beta, "v3.9-alpha" = alpha.
+package-as: Lightbound
+
+ignore:
+  - README.md
+  - Lightbound.png
