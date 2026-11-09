@@ -25,12 +25,15 @@ local function Known(spell)
 	return ok and info ~= nil
 end
 
+-- icons for spells you may not have learned yet (only spells you know have a texture by name)
+local FALLBACK_ICON = { ["Hammer of Wrath"] = 132326, ["Exorcism"] = 135903, ["Judgement"] = 135959 }
+
 local function Texture(spell)
 	local ok, tex = pcall(function()
 		if C_Spell and C_Spell.GetSpellTexture then return C_Spell.GetSpellTexture(spell) end
 		return GetSpellTexture(spell)
 	end)
-	return ok and tex or 134400
+	return (ok and tex) or FALLBACK_ICON[spell] or 134400
 end
 
 -- true when the spell is usable now and off cooldown (the global cooldown doesn't count)

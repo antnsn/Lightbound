@@ -74,7 +74,11 @@ local function Skin(frame, titleText, onClose)
 		tile = true, tileSize = 32, edgeSize = 32,
 		insets = { left = 11, right = 11, top = 12, bottom = 11 },
 	})
-	skin:SetBackdropColor(1, 1, 1, 0.96)
+	skin:SetBackdropColor(1, 1, 1, 1)
+	-- the dialog background texture is see-through on its own: put a solid layer under it
+	local under = skin:CreateTexture(nil, "BACKGROUND", nil, -8)
+	under:SetPoint("TOPLEFT", 11, -12); under:SetPoint("BOTTOMRIGHT", -11, 11)
+	under:SetColorTexture(0.045, 0.032, 0.02, 1)
 	local top = CreateFrame("Frame", nil, frame)
 	top:SetAllPoints(skin)
 	top:SetFrameLevel(frame:GetFrameLevel() + 15)
