@@ -5,3 +5,4 @@ package-as: Lightbound
 ignore:
   - README.md
   - Lightbound.png
+  - screenshots
