@@ -100,7 +100,7 @@ local function Add(name, guid, key)
 		local ok, _, c = pcall(GetPlayerInfoByGUID, guid)
 		if ok then class = Clean(c) end
 	end
-	local note
+	local asked, note = key, nil
 	key, note = Resolve(key, unit, class)
 	if not key then
 		if note then ns.Print(("%s asks for Salvation: %s"):format(name, note)) end
@@ -110,7 +110,7 @@ local function Add(name, guid, key)
 		while #requests >= ns.db.rqRows do table.remove(requests, 1) end
 		requests[#requests + 1] = r
 	end
-	r.unit, r.class, r.key, r.spell, r.at = unit, class, key, "Blessing of " .. key, GetTime()
+	r.unit, r.class, r.key, r.spell, r.at, r.asked = unit, class, key, "Blessing of " .. key, GetTime(), asked
 	r.known = ns.PB.SpellKnown(r.spell)
 	r.base = unit and ns.PB.TimeLeft(unit, key) or 0 -- time they already had; a refresh request
 	if r.base == math.huge then r.base = 0 end
@@ -155,12 +155,25 @@ end
 local function Configure(row)
 	if InCombatLockdown() then return end
 	local r = row.data
+	if r and not ns.unlocked then
+		-- re-resolve at click time: the tank list or the fallback may have changed since they asked
+		local key, note = Resolve(r.asked or r.key, r.unit, r.class)
+		if not key then
+			row:SetAttribute("type", nil)
+			pending = nil
+			if note then ns.Print(("%s: %s"):format(r.name, note)) end
+			return
+		end
+		if key ~= r.key then r.key, r.spell = key, "Blessing of " .. key; r.known = ns.PB.SpellKnown(r.spell) end
+	end
 	if r and r.known and not ns.unlocked then
 		row:SetAttribute("type", "macro")
 		if r.unit then
 			row:SetAttribute("macrotext", ("/cast [nocombat,@%s,help] %s"):format(r.unit, r.spell))
 		else
-			row:SetAttribute("macrotext", ("/target %s\n/cast [nocombat,@target,help] %s\n/targetlasttarget"):format(r.name, r.spell))
+			-- not in the group: target by name. Clear first so a failed /target leaves no target and
+			-- the cast does nothing, instead of blessing whoever was targeted before.
+			row:SetAttribute("macrotext", ("/cleartarget\n/target %s\n/cast [nocombat,@target,help] %s\n/targetlasttarget"):format(r.name, r.spell))
 		end
 		pending, pendingAt = r, GetTime()
 	else
