@@ -10,7 +10,7 @@ local M = {}
 ns.modules[#ns.modules + 1] = M
 ns.optionPages = ns.optionPages or {}
 
-local isSecret = _G.issecretvalue or function() return false end
+local isSecret = ns.IsSecret -- see Core.lua
 local RESTRICTED = _G.PP_RESTRICTED or "<restricted>" -- placeholder the client returns for hidden aura names
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
 local function CleanName(v) v = Clean(v); if v == RESTRICTED then return nil end return v end

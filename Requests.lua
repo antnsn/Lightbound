@@ -11,7 +11,7 @@ local frame, title, rows = nil, nil, {}
 local requests = {} -- oldest first: { name, unit, guid, class, key, spell, known, at, base }
 local pending, pendingAt -- request of the last click, until the cast lands (or fails, or 3 s pass)
 local PENDING_WINDOW = 3
-local isSecret = _G.issecretvalue or function() return false end
+local isSecret = ns.IsSecret -- see Core.lua
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
 
 -- word -> blessing key; "*" means "whatever this class is assigned"

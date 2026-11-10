@@ -46,7 +46,16 @@ ns.defaults = {
 		PRIEST = "Kings", SHAMAN = "Kings", MAGE = "Kings", WARLOCK = "Kings" },
 }
 
-local isSecret = _G.issecretvalue or function() return false end
+-- Secret values (hidden from addons in combat on Forever). Newer clients expose canaccessvalue,
+-- older ones issecretvalue; Decursive uses the former. Support both, assume readable otherwise.
+local issecretvalue, canaccessvalue = _G.issecretvalue, _G.canaccessvalue
+local function IsSecret(v)
+	if issecretvalue then return issecretvalue(v) end
+	if canaccessvalue then return not canaccessvalue(v) end
+	return false
+end
+ns.IsSecret = IsSecret
+local isSecret = IsSecret
 local RESTRICTED = _G.PP_RESTRICTED or "<restricted>"
 
 local function Clean(v)

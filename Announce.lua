@@ -18,7 +18,7 @@ local shownRows = 0
 local lastDITarget      -- { name, at } from the last clicked row (PostClick runs in combat too)
 local sent              -- { spell, name, at } from UNIT_SPELLCAST_SENT
 local lastRez = {}      -- target name -> time of the last Redemption announcement
-local isSecret = _G.issecretvalue or function() return false end
+local isSecret = ns.IsSecret -- see Core.lua
 
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
 local function Safe(fn, ...) local ok, v = pcall(fn, ...) if not ok then return nil end return Clean(v) end

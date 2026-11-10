@@ -7,7 +7,7 @@ local _, ns = ...
 local M = {}
 ns.modules[#ns.modules + 1] = M
 
-local isSecret = _G.issecretvalue or function() return false end
+local isSecret = ns.IsSecret -- see Core.lua
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
 
 local EXORCISM_TYPES = { Undead = true, Demon = true, Untoter = true, ["Dämon"] = true, ["Mort-vivant"] = true, ["Démon"] = true }

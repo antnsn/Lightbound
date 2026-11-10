@@ -10,7 +10,7 @@ local _, ns = ...
 
 local PREFIX = "PLPWR"
 local LB_PREFIX = "LBND" -- Lightbound-only data (judgements, tanks, extra cooldowns); PallyPower never sees it
-local isSecret = _G.issecretvalue or function() return false end
+local isSecret = ns.IsSecret -- see Core.lua
 local NUM_CLASSES, NUM_AURAS = 9, 7
 ns.PP_SPELL = { "Wisdom", "Might", "Kings", "Salvation", "Light", "Sanctuary" }
 ns.PP_SPELL_ID = { Wisdom = 1, Might = 2, Kings = 3, Salvation = 4, Light = 5, Sanctuary = 6 }

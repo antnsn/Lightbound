@@ -19,7 +19,7 @@ local btn, status, statusIcon, statusText, owner
 local planned            -- { unit, guid, name, spell, key } for the next press
 local pending            -- what the last press tried to cast
 local recent = {}        -- guid -> { [key] = time cast }; fallback when auras can't be read
-local isSecret = _G.issecretvalue or function() return false end
+local isSecret = ns.IsSecret -- see Core.lua
 
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
 
