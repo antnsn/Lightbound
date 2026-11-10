@@ -110,6 +110,8 @@ local function ReadForbearance()
 	return hidden
 end
 
+-- Target of the last Blessing of Protection cast (UNIT_SPELLCAST_SENT); Forbearance lands on the recipient, not the caster.
+local lastBopTarget
 -- A tracked spell was cast. When the client hides the cooldown, assume it started now.
 local function Cast(key)
 	ScanSelf()
@@ -122,9 +124,11 @@ local function Cast(key)
 		local other = SHARED[key]
 		if other and me[other] then me[other] = { readyAt = now + dur, dur = dur, hidden = true, assumed = true } end
 	end
-	if (key == "bop" or key == "ds" or key == "dp") and ReadForbearance() and not forb then
+	local onSelf = key == "ds" or key == "dp" or (key == "bop" and lastBopTarget == (UnitName("player")))
+	if onSelf and ReadForbearance() and not forb then
 		forb = now + FORBEARANCE.cd
 	end
+	if key == "bop" then lastBopTarget = nil end
 end
 
 -- Sharing ---------------------------------------------------------------------------
@@ -354,7 +358,17 @@ function M:Init()
 	ev:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 	ev:RegisterUnitEvent("UNIT_AURA", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-	ev:SetScript("OnEvent", function(_, event, _, _, spellID)
+	ev:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
+	ev:SetScript("OnEvent", function(_, event, _, a4, a5, a6)
+		if event == "UNIT_SPELLCAST_SENT" then
+			-- (unit, target, castGUID, spellID)
+			if ns.SpellName(a6) == "Blessing of Protection" then
+				local t = (type(a4) == "string" and not isSecret(a4)) and a4 or nil
+				lastBopTarget = t and Ambiguate(t, "none") or nil
+			end
+			return
+		end
+		local spellID = a5 -- UNIT_SPELLCAST_SUCCEEDED: (unit, castGUID, spellID)
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local name = ns.SpellName(spellID)
 			for _, s in ipairs(SPELLS) do

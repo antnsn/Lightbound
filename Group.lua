@@ -434,7 +434,8 @@ local function Parse(sender, msg)
 	local p = ns.pallys[sender]
 
 	if msg == "REQ" then
-		local target = (IsInRaid() and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and IsInInstance()) and nil or sender
+		local target = sender
+		if IsInRaid() and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and IsInInstance() then target = nil end -- instance chat: broadcast
 		SendSelf(target)
 		for _, fn in ipairs(ns.lbSyncers) do fn(target) end
 		return

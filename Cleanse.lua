@@ -115,11 +115,13 @@ end
 local function Rows() return math.max(1, math.min(MAX_ROWS, ns.db.clRows or 5)) end
 
 -- Visuals for one row; safe in combat (no Show/Hide/attribute calls).
+-- EnableMouse is not protected, so standby rows (mapped but nothing to cleanse) never take clicks.
 local function Paint(row, unit, d)
-	if not unit then row:SetAlpha(0); row.unit = nil; return end
+	if not unit then row:SetAlpha(0); row:EnableMouse(false); row.unit = nil; return end
 	row.unit = unit
-	if not d then row:SetAlpha(0); row.data = nil; return end
+	if not d then row:SetAlpha(0); row:EnableMouse(false); row.data = nil; return end
 	row.data = d
+	row:EnableMouse(not ns.unlocked)
 	local _, class = UnitClass(unit)
 	local cc = class and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
 	local name = Clean(UnitName(unit)) or unit
