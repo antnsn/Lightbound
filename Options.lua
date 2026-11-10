@@ -292,6 +292,12 @@ local function NewPage(title, subtitle)
 	return p
 end
 
+-- Other modules add their own options page: ns.optionPages[#ns.optionPages + 1] = function(UI) local p = UI.NewPage(...) ... end
+-- Widgets return (widget, height); add the height with p:Add(h). CONTENT_W is the usable width.
+ns.optionPages = ns.optionPages or {}
+ns.UI.NewPage, ns.UI.DBToggle, ns.UI.Toggle, ns.UI.Slider, ns.UI.Cycle, ns.UI.Section = NewPage, DBToggle, Toggle, Slider, Cycle, Section
+ns.UI.CONTENT_W = CONTENT_W
+
 local function BuildRF()
 	local p = NewPage("Righteous Fury", "Warns with an icon and a sound when you're grouped without Righteous Fury.")
 	local W = CONTENT_W
@@ -538,6 +544,7 @@ local function Build()
 
 	BuildRF(); BuildAura(); BuildSeal(); BuildCombat(); BuildBlessings(); BuildKey(); BuildClasses()
 	BuildOverview(); BuildReagents(); BuildRested()
+	for _, build in ipairs(ns.optionPages) do build(ns.UI) end
 
 	for i, pg in ipairs(pages) do
 		local nb = CreateFrame("Button", nil, side)

@@ -9,6 +9,7 @@
 local _, ns = ...
 
 local PREFIX = "PLPWR"
+local LB_PREFIX = "LBND" -- Lightbound-only data (judgements, tanks, extra cooldowns); PallyPower never sees it
 local isSecret = _G.issecretvalue or function() return false end
 local NUM_CLASSES, NUM_AURAS = 9, 7
 ns.PP_SPELL = { "Wisdom", "Might", "Kings", "Salvation", "Light", "Sanctuary" }
@@ -201,7 +202,7 @@ local function Flush()
 	local item = table.remove(queue, 1)
 	if not item then sending = false return end
 	if IsInGroup() then
-		pcall(C_ChatInfo.SendAddonMessage, PREFIX, item.msg, item.target and "WHISPER" or Channel(), item.target)
+		pcall(C_ChatInfo.SendAddonMessage, item.prefix or PREFIX, item.msg, item.target and "WHISPER" or Channel(), item.target)
 	end
 	C_Timer.After(0.15, Flush)
 end
@@ -212,6 +213,26 @@ local function Send(msg, target)
 	queue[#queue + 1] = { msg = msg, target = target }
 	if not sending then sending = true; C_Timer.After(0, Flush) end
 end
+
+-- Lightbound-only sync (prefix LBND). Message is "TAG rest"; handlers are keyed by TAG.
+-- Other modules: ns.OnLB("TAG", function(sender, rest) ... end) and ns.SendLB("TAG rest"[, target]).
+-- Nothing is sent while PallyPower is loaded (passive), same as the PLPWR traffic.
+local lbHandlers = {}
+function ns.OnLB(tag, handler) lbHandlers[tag] = handler end
+function ns.SendLB(msg, target)
+	if passive or not IsInGroup() then return end
+	for _, q in ipairs(queue) do if q.prefix == LB_PREFIX and q.msg == msg and q.target == target then return end end
+	queue[#queue + 1] = { prefix = LB_PREFIX, msg = msg, target = target }
+	if not sending then sending = true; C_Timer.After(0, Flush) end
+end
+local function ParseLB(sender, msg)
+	local tag, rest = msg:match("^(%u+)%s*(.*)$")
+	local h = tag and lbHandlers[tag]
+	if h then h(sender, rest or "") end
+end
+-- Modules that have Lightbound-only state to share register here; called when a peer asks for a full sync.
+ns.lbSyncers = {}
+function ns.OnLBSync(fn) ns.lbSyncers[#ns.lbSyncers + 1] = fn end
 
 local function SendSelf(target)
 	if passive or not IsInGroup() then return end
@@ -265,6 +286,7 @@ ns.SendSelf = SendSelf
 function ns.RequestSync()
 	if passive then return end
 	SendSelf()
+	for _, fn in ipairs(ns.lbSyncers) do fn() end
 	Send("REQ")
 end
 
@@ -412,7 +434,9 @@ local function Parse(sender, msg)
 	local p = ns.pallys[sender]
 
 	if msg == "REQ" then
-		if IsInRaid() and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and IsInInstance() then SendSelf() else SendSelf(sender) end
+		local target = (IsInRaid() and IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and IsInInstance()) and nil or sender
+		SendSelf(target)
+		for _, fn in ipairs(ns.lbSyncers) do fn(target) end
 		return
 	end
 	local numbers, assign = msg:match("^SELF ([0-9a-fn]*)@([0-9n]*)")
@@ -547,6 +571,7 @@ function M:Update() end
 
 function M:Init()
 	C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
+	C_ChatInfo.RegisterAddonMessagePrefix(LB_PREFIX)
 	local ev = CreateFrame("Frame")
 	ev:RegisterEvent("PLAYER_LOGIN")
 	ev:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -568,9 +593,10 @@ function M:Init()
 			Migrate()
 			ScanSelf()
 		elseif event == "CHAT_MSG_ADDON" then
-			if prefix ~= PREFIX or passive then return end
+			if passive or (prefix ~= PREFIX and prefix ~= LB_PREFIX) then return end
 			local sender = Normalize(Ambiguate(source or "", "none"))
-			if sender then Parse(sender, message) end
+			if not sender then return end
+			if prefix == LB_PREFIX then ParseLB(sender, message) else Parse(sender, message) end
 		elseif event == "GROUP_JOINED" or event == "PLAYER_ENTERING_WORLD" then
 			if IsInGroup() and not passive then
 				C_Timer.After(2, function() ns.RequestSync() end)
