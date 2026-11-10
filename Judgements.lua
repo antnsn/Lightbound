@@ -12,6 +12,7 @@ ns.modules[#ns.modules + 1] = M
 
 local isSecret = _G.issecretvalue or function() return false end
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
+local RESTRICTED = _G.PP_RESTRICTED or "<restricted>" -- placeholder the client returns for hidden aura names
 
 ns.JUDGEMENTS = { "None", "Wisdom", "Light", "Crusader", "Justice" }
 local VALID = { None = true, Wisdom = true, Light = true, Crusader = true, Justice = true }
@@ -167,7 +168,7 @@ local function ReadTarget()
 		if not ok then hidden = true break end
 		if not a then break end
 		local name = Clean(a.name)
-		if not name then
+		if not name or name == RESTRICTED then
 			hidden = true
 		else
 			readable = true
@@ -239,15 +240,17 @@ function M:Update()
 	if not db.jaEnabled or not UnitAffectingCombat("player") or not HostileTarget() then frame:Hide() return end
 	if not plan or GetTime() - planAt > 5 then plan, planMine = Plan(); planAt = GetTime() end
 	local list, mine = plan, planMine
-	if not mine or #list == 0 then frame:Hide() return end
+	-- no assignment of your own: still show the raid's Judgements unless the list is only yours
+	if db.jaOnlyMine and not mine then frame:Hide() return end
+	if #list == 0 then frame:Hide() return end
 	local found, hidden, unknown = ReadTarget()
 	if unknown then Show(list, "unknown", nil, mine) return end
 	-- your own Judgement can be left out of a partly hidden list: trust your last cast for a while
-	if hidden and not found[DEBUFF[mine]] and GetTime() - lastCast < JUDGEMENT_TIME then
+	if mine and hidden and not found[DEBUFF[mine]] and GetTime() - lastCast < JUDGEMENT_TIME then
 		found[DEBUFF[mine]] = JUDGEMENT_TIME - (GetTime() - lastCast)
 	end
 	Show(list, "known", found, mine)
-	if not found[DEBUFF[mine]] and db.jaSound and GetTime() - lastSound > SOUND_GAP then
+	if mine and not found[DEBUFF[mine]] and db.jaSound and GetTime() - lastSound > SOUND_GAP then
 		lastSound = GetTime()
 		PlaySound(SOUNDKIT and SOUNDKIT.RAID_WARNING or 8959, "Master")
 	end

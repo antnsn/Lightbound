@@ -176,13 +176,19 @@ local function Draw()
 			else tag = "|cffffd100" .. r.key .. "|r" end
 			row.state:SetText(("%s  |cff999999%ds|r"):format(tag, r.age or math.floor(now - r.at)))
 			row:SetAlpha((combat or not r.known) and 0.55 or 1)
-			if not combat then row:EnableMouse(not ns.unlocked); row:Show() end
+			row:EnableMouse(not ns.unlocked)
+			if not combat then row:Show() end
 		else
-			row:SetAlpha(0) -- in combat rows can't be hidden
-			if not combat then row:Hide() end
+			-- Empty rows stay shown at alpha 0 (rows can't be shown in combat, so every slot is
+			-- prepared out of combat; a request that arrives mid-fight is drawn into one of them).
+			row:SetAlpha(0)
+			row:EnableMouse(false)
+			if not combat then
+				if i <= ns.db.rqRows or (ns.unlocked and i <= #list) then row:Show() else row:Hide() end
+			end
 		end
 	end
-	if not combat then frame:SetHeight(Height(#list)) end
+	if not combat then frame:SetHeight(Height(ns.unlocked and #list or ns.db.rqRows)) end
 end
 
 function M:Update()
@@ -273,19 +279,10 @@ function M:Init()
 	end
 	ev:SetScript("OnEvent", function(_, event, a1, a2, a3, _, _, _, _, _, _, _, _, a12)
 		if event == "PLAYER_REGEN_DISABLED" then
-			-- entering combat: clear the buttons so a stale target can't fire, and show every row
-			-- (alpha 0 when empty) so requests that arrive in combat can still be drawn
-			if not InCombatLockdown() then
-				local shown = frame:IsShown()
-				for i, row in ipairs(rows) do
-					row:SetAttribute("type", nil)
-					if shown and i <= ns.db.rqRows then
-						if not row.data then row:SetAlpha(0) end
-						row:Show()
-					end
-				end
-				if shown then frame:SetHeight(Height(ns.db.rqRows)) end
-			end
+			-- Lockdown is already on when this fires, so nothing protected can be done here. Rows are
+			-- prepared by Draw() out of combat and the click macro carries [nocombat], so a stale
+			-- target can't fire. Just redraw the states.
+			Draw()
 			return
 		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local name = ns.SpellName(a3)
