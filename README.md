@@ -45,6 +45,7 @@ More in [screenshots/](screenshots).
 - Hammer of Wrath (target below 20%) and Exorcism (undead/demon) alerts
 - Your Judgement on the target, plus a reminder when it's missing in combat
 - Well-Rested and Well Fed: a warning before they run out, and when Well Fed is gone
+- Paladin cooldowns: every paladin's Blessing of Protection, Freedom and Sacrifice, Divine Shield and Divine Protection (plus your own Forbearance), shared between Lightbound users
 
 **Quality of life**
 - Buys Symbol of Kings and Symbol of Divinity automatically at vendors, and warns when you run low
