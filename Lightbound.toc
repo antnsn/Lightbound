@@ -18,6 +18,7 @@ Overview.lua
 Reagents.lua
 Combat.lua
 Cleanse.lua
+Trackers.lua
 Options.lua
 RaidWindow.lua
 Minimap.lua

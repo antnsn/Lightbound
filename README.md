@@ -44,6 +44,7 @@ More in [screenshots/](screenshots).
 - Blessings on yourself, with time left
 - Hammer of Wrath (target below 20%) and Exorcism (undead/demon) alerts
 - Your Judgement on the target, plus a reminder when it's missing in combat
+- Trackers row: Reckoning stacks (gold at 4), Consecration countdown, Holy Shock cooldown, and a Judgement of Wisdom reminder when your mana runs low
 - Well-Rested and Well Fed: a warning before they run out, and when Well Fed is gone
 - Cleanse list: group members (and pets) with a Poison, Disease or Magic debuff you can remove, one click per row, with a sound and an ignore list. Rows keep their targets while you're in combat
 
