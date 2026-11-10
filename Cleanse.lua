@@ -3,11 +3,12 @@
 -- Disease. Whichever you know is used, Cleanse preferred.
 --
 -- Two presentations share one scanner (clMode):
---  * Grid (default): Decursive-style micro unit frames, one fixed cell per group member. Cells are
---    secure buttons (type=spell, unit=<unitID>) laid out OUT of combat only (Layout). In combat
---    only colours, alpha, icon and text change; a roster change marks the layout dirty and it is
---    rebuilt on PLAYER_REGEN_ENABLED. Clicking any cell casts on that unit, afflicted or not,
---    which still works when aura data is secret.
+--  * Grid (default): Decursive-style micro unit frames, one cell per group member, driven by two
+--    SecureGroupHeaders (players, pets). Blizzard's secure code creates the cells, assigns their
+--    unit attribute and lays them out, in combat too, so joins, leaves and raid-ID shifts never
+--    leave a cell pointing at the wrong person. We only paint (colour, alpha, icon, text) and, out
+--    of combat, set cell size, spell and the headers' options. Clicking a cell casts on its unit,
+--    afflicted or not, which still works when aura data is secret.
 --  * List: rows mapped out of combat, afflicted units first, then the rest of the group as
 --    invisible standby rows. The mapping is frozen in combat; alpha does the hiding.
 --
@@ -28,12 +29,14 @@ local utf8sub = string.utf8sub or string.sub
 local ROW_W, ROW_H, TITLE_H, MAX_ROWS, GAP = 190, 22, 18, 10, 2
 local FONT = "Fonts\\ARIALN.TTF"
 local KEY_BUTTON = "LightboundCleanseKeyButton"
-local frame, title, rows, cells = nil, nil, {}, {}
+local frame, title, rows = nil, nil, {}
+local header, petHeader              -- SecureGroupHeader (players) and SecureGroupPetHeader (pets)
+local placeholders = {}              -- plain cells drawn while the frames are unlocked
 local keyBtn, keyOwner, keyPending
 local spell, types                   -- "Cleanse"/"Purify" and the debuff types it removes
 local afflicted = {}                 -- unit -> true from the last scan (for the sound)
-local laid = {}                      -- units with a grid cell, in cell order (from the last Layout)
-local layoutDirty = false            -- a Layout was requested in combat
+local applied = {}                   -- header configuration from the last Layout
+local layoutNotified = false         -- told the user a Layout is waiting for combat to end
 local dirty, needLayout = false, false
 
 local TYPE_COLOR = {
@@ -59,7 +62,8 @@ local function PickSpell()
 	return changed
 end
 
-local wantMode = function() return ns.db.clMode == "List" and "List" or "Grid" end
+-- Grid needs the secure header; without it (template missing) the list is all there is.
+local wantMode = function() return (ns.db.clMode == "List" or not header) and "List" or "Grid" end
 local laidOut -- the mode the frames were last laid out in; Update paints that one until Layout can run again
 local function Mode() return laidOut or wantMode() end
 local function Rows() return math.max(1, math.min(MAX_ROWS, ns.db.clRows or 5)) end
@@ -81,8 +85,9 @@ local function InRange(unit)
 	return inR and true or false
 end
 
--- Group units in display order: party = player, party1-4; raid = raid1..N by subgroup then index
--- (one row per raid group at 5 per row). Pets follow the players.
+-- Group units in display order: party = player, party1-4; raid = raid1..N by subgroup then index.
+-- Pets follow the players. Drives the scan, the sound and the list; the grid cells get their
+-- units from the secure headers.
 local function Units()
 	local db, list, pets = ns.db, {}, {}
 	if IsInRaid() then
@@ -225,6 +230,8 @@ local function MakeRow(i)
 end
 
 -- Grid cells ----------------------------------------------------------------------------
+-- The secure headers create the cells (SecureActionButtonTemplate, named <header>UnitButtonN) and
+-- give them their unit. Visuals are added here the first time Update sees a cell, out of combat.
 local function Edge(cell, p1, p2, w, h)
 	local t = cell:CreateTexture(nil, "OVERLAY", nil, 2)
 	t:SetColorTexture(1, 1, 1, 1)
@@ -233,12 +240,18 @@ local function Edge(cell, p1, p2, w, h)
 	return t
 end
 
-local function MakeCell(i)
-	local cell = CreateFrame("Button", "LightboundCleanseCell" .. i, frame, "SecureActionButtonTemplate")
-	cell:RegisterForClicks(GetCVarBool and GetCVarBool("ActionButtonUseKeyDown") and "AnyDown" or "AnyUp")
-	cell:SetAttribute("checkselfcast", false)
-	cell:SetAttribute("checkfocuscast", false)
+local function SetFonts(cell, size)
+	local fontSize = math.max(8, math.floor(size * 0.45))
+	cell.name:SetFont(FONT, fontSize, "OUTLINE")
+	cell.count:SetFont(FONT, fontSize, "OUTLINE")
+end
+
+local function Style(cell, secure)
+	if secure then
+		cell:RegisterForClicks(GetCVarBool and GetCVarBool("ActionButtonUseKeyDown") and "AnyDown" or "AnyUp")
+	end
 	cell.bg = cell:CreateTexture(nil, "BACKGROUND"); cell.bg:SetAllPoints()
+	cell.bg:SetColorTexture(unpack(CLEAN_BG))
 	cell.icon = cell:CreateTexture(nil, "ARTWORK")
 	cell.icon:SetPoint("TOPLEFT", 1, -1); cell.icon:SetPoint("BOTTOMRIGHT", -1, 1)
 	cell.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -254,11 +267,10 @@ local function MakeCell(i)
 	}
 	cell.SetBorder = function(self, on) for _, e in ipairs(self.edges) do e:SetAlpha(on and 1 or 0) end end
 	cell:SetBorder(false)
+	SetFonts(cell, CellSize())
 	local hl = cell:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints(); hl:SetColorTexture(1, 1, 1, 0.12)
 	cell:SetScript("OnEnter", Tooltip)
 	cell:SetScript("OnLeave", function() GameTooltip:Hide() end)
-	cell:Hide()
-	return cell
 end
 
 -- Visuals for one cell; safe in combat. `best` marks the unit with the most debuffs.
@@ -266,12 +278,6 @@ local function PaintCell(cell, d, best)
 	local unit, db = cell.unit, ns.db
 	cell.data = d
 	local status = Status(unit)
-	if status == "gone" then
-		cell.bg:SetColorTexture(unpack(CLEAN_BG)); cell.icon:Hide(); cell.count:SetText("")
-		cell.name:SetText(""); cell:SetBorder(false); cell.oor = nil
-		cell:SetAlpha(0.15)
-		return
-	end
 	if db.clNames and CellSize() >= 26 then
 		local name = CleanName(UnitName(unit))
 		cell.name:SetText(name and utf8sub(name, 1, 3) or "")
@@ -289,9 +295,100 @@ local function PaintCell(cell, d, best)
 		cell.bg:SetColorTexture(unpack(CLEAN_BG)); cell.icon:Hide(); cell.count:SetText("")
 		cell:SetBorder(false)
 	end
-	if status == "down" then cell.oor = nil; cell:SetAlpha(0.25); cell:SetBorder(false); return end
+	if status ~= "ok" then cell.oor = nil; cell:SetAlpha(0.25); cell:SetBorder(false); return end
 	cell.oor = db.clRange and not InRange(unit)
 	cell:SetAlpha(cell.oor and 0.4 or 1)
+end
+
+-- Paints every cell the header currently shows, reading the unit the header gave it (it may
+-- have been reassigned in combat). Cells born in combat wait for their visuals until it ends.
+local function PaintHeader(h, hits, best)
+	local combat = InCombatLockdown()
+	for _, cell in ipairs({ h:GetChildren() }) do
+		if cell:IsShown() and (cell.bg or not combat) then
+			if not cell.bg then Style(cell, true) end
+			local unit = cell:GetAttribute("unit")
+			cell.unit = unit
+			if unit then
+				local d = hits[unit]
+				if d == nil then d = Scan(unit) end
+				PaintCell(cell, d or nil, unit == best)
+			end
+		end
+	end
+end
+
+-- Secure headers -------------------------------------------------------------------------
+-- Runs in the restricted environment for every new cell, with self = the cell.
+local function InitSnippet()
+	local size = CellSize()
+	local code = ("self:SetWidth(%d) self:SetHeight(%d)\n"):format(size, size)
+	if spell then
+		code = code .. ([[
+			self:SetAttribute("type", "spell")
+			self:SetAttribute("spell", %q)
+			self:SetAttribute("checkselfcast", false)
+			self:SetAttribute("checkfocuscast", false)
+		]]):format(spell)
+	end
+	return code
+end
+
+-- Attributes the header reads once: who to show, in what order, and how to flow them. With
+-- point LEFT the units run left to right and each new header "column" is a new row below.
+local function MakeHeader(name, template)
+	local ok, h = pcall(CreateFrame, "Frame", name, frame, template)
+	if not ok or not h or not h:GetScript("OnEvent") then
+		if ok and h then h:Hide() end
+		return nil
+	end
+	h:Hide()
+	h:SetAttribute("showParty", true)
+	h:SetAttribute("showRaid", true)
+	h:SetAttribute("showPlayer", true)
+	h:SetAttribute("showSolo", false)
+	h:SetAttribute("groupBy", "GROUP")
+	h:SetAttribute("groupingOrder", "1,2,3,4,5,6,7,8")
+	h:SetAttribute("sortMethod", "INDEX")
+	h:SetAttribute("point", "LEFT")
+	h:SetAttribute("xOffset", GAP)
+	h:SetAttribute("yOffset", 0)
+	h:SetAttribute("columnAnchorPoint", "TOP")
+	h:SetAttribute("template", "SecureActionButtonTemplate")
+	return h
+end
+
+-- Cell size, spell and row length. Out of combat only. Existing cells are updated directly;
+-- the snippet covers cells the header creates later. unitsPerColumn goes last: every attribute
+-- change makes a visible header lay itself out again.
+local function ConfigureHeader(h)
+	local size, per = CellSize(), PerRow()
+	h:SetAttribute("initialConfigFunction", InitSnippet())
+	for _, cell in ipairs({ h:GetChildren() }) do
+		cell:SetSize(size, size)
+		cell:SetAttribute("type", spell and "spell" or nil)
+		cell:SetAttribute("spell", spell)
+		if cell.bg then SetFonts(cell, size) end
+	end
+	h:SetAttribute("columnSpacing", GAP)
+	h:SetAttribute("maxColumns", math.ceil(40 / per))
+	h:SetAttribute("unitsPerColumn", per)
+end
+
+local function Applied()
+	return applied.mode == wantMode() and applied.size == CellSize() and applied.per == PerRow()
+		and applied.spell == spell and applied.pets == (ns.db.clPets and true or false)
+end
+
+-- The headers size themselves when they lay out; the frame wraps them. Out of combat only.
+local function FitFrame()
+	if InCombatLockdown() or not header then return end
+	local w, h = header:GetWidth(), math.max(header:GetHeight(), CellSize())
+	if petHeader and petHeader:IsShown() and petHeader:GetHeight() > 1 then
+		w = math.max(w, petHeader:GetWidth())
+		h = h + GAP + petHeader:GetHeight()
+	end
+	frame:SetSize(math.max(64, 8 + w), TITLE_H + h + 4)
 end
 
 -- Layout --------------------------------------------------------------------------------
@@ -301,7 +398,7 @@ local PLACEHOLDER = {
 }
 
 local function PlaceholderGrid()
-	for i, cell in ipairs(cells) do
+	for i, cell in ipairs(placeholders) do
 		local s = PLACEHOLDER[i]
 		if s and cell:IsShown() then
 			cell.name:SetText(ns.db.clNames and CellSize() >= 26 and s[1]:sub(1, 3) or "")
@@ -340,14 +437,20 @@ local function PlaceholderList()
 	end
 end
 
--- Positions, sizes and secure attributes. Out of combat only; in combat it is deferred to
--- PLAYER_REGEN_ENABLED.
+-- Mode, sizes, header options and list attributes. Out of combat only; in combat it is
+-- deferred to PLAYER_REGEN_ENABLED (and announced once if an option is waiting).
 function M:Layout()
 	if not frame then return end
-	if InCombatLockdown() then layoutDirty = true return end
-	layoutDirty = false
+	if InCombatLockdown() then
+		if not layoutNotified and not Applied() then
+			layoutNotified = true
+			ns.Print("cleanse layout changes after combat.")
+		end
+		return
+	end
+	layoutNotified = false
 	laidOut = wantMode()
-	local grid = Mode() == "Grid"
+	local grid = laidOut == "Grid"
 	local placeholder = ns.unlocked
 	-- list rows
 	local n = (not grid) and Rows() or 0
@@ -361,49 +464,55 @@ function M:Layout()
 			row:Hide()
 		end
 	end
-	-- grid cells
-	wipe(laid)
-	local units = {}
-	if grid then
-		if placeholder then
-			for i = 1, #PLACEHOLDER do units[i] = false end
-		elseif ShouldShow() then
-			units = Units()
+	-- headers: the live grid. Hidden headers hide their cells too.
+	local live = grid and not placeholder
+	if header then
+		if live then
+			if not Applied() or not header:IsShown() then ConfigureHeader(header) end
+			header:Show()
+		else
+			header:Hide()
 		end
 	end
+	if petHeader then
+		if live and ns.db.clPets then
+			if not Applied() or not petHeader:IsShown() then ConfigureHeader(petHeader) end
+			petHeader:Show()
+		else
+			petHeader:Hide()
+		end
+	end
+	applied = { mode = laidOut, size = CellSize(), per = PerRow(), spell = spell, pets = ns.db.clPets and true or false }
+	-- placeholder cells: five fake members while unlocked
 	local size, per = CellSize(), PerRow()
-	local fontSize = math.max(8, math.floor(size * 0.45))
-	for i = 1, math.max(#units, #cells) do
-		local u = units[i]
-		local cell = cells[i]
-		if u ~= nil and not cell then cell = MakeCell(i); cells[i] = cell end
-		if cell then
-			if u ~= nil then
-				local col, row = (i - 1) % per, math.floor((i - 1) / per)
-				cell:ClearAllPoints()
-				cell:SetPoint("TOPLEFT", 4 + col * (size + GAP), -TITLE_H - row * (size + GAP))
-				cell:SetSize(size, size)
-				cell.name:SetFont(FONT, fontSize, "OUTLINE")
-				cell.count:SetFont(FONT, fontSize, "OUTLINE")
-				cell.unit, cell.data, cell.oor = u or nil, nil, nil
-				Map(cell, u or nil)
-				cell:EnableMouse(u and true or false)
-				cell:Show()
-				if u then laid[#laid + 1] = u end
-			else
-				Map(cell, nil); cell:EnableMouse(false); cell.unit, cell.data = nil, nil
-				cell:Hide()
+	for i = 1, #PLACEHOLDER do
+		local cell = placeholders[i]
+		if grid and placeholder then
+			if not cell then
+				cell = CreateFrame("Button", nil, frame)
+				Style(cell, false)
+				cell:EnableMouse(false)
+				placeholders[i] = cell
 			end
+			local col, row = (i - 1) % per, math.floor((i - 1) / per)
+			cell:ClearAllPoints()
+			cell:SetPoint("TOPLEFT", 4 + col * (size + GAP), -TITLE_H - row * (size + GAP))
+			cell:SetSize(size, size)
+			SetFonts(cell, size)
+			cell:Show()
+		elseif cell then
+			cell:Hide()
 		end
 	end
 	-- frame size
-	if grid then
-		local count = math.max(#units, 1)
-		local cols = math.min(count, per)
-		local rws = math.ceil(count / per)
+	if not grid then
+		frame:SetSize(ROW_W, TITLE_H + n * (ROW_H + GAP) + 6)
+	elseif placeholder then
+		local count = #PLACEHOLDER
+		local cols, rws = math.min(count, per), math.ceil(count / per)
 		frame:SetSize(math.max(64, 8 + cols * (size + GAP) - GAP), TITLE_H + rws * (size + GAP) + 4)
 	else
-		frame:SetSize(ROW_W, TITLE_H + n * (ROW_H + GAP) + 6)
+		FitFrame()
 	end
 end
 
@@ -425,7 +534,7 @@ function M:Update()
 			wipe(afflicted)
 			return
 		end
-		frame:Show()
+		frame:Show() -- a hidden header lays itself out when it becomes visible
 	elseif not frame:IsShown() then
 		return
 	end
@@ -449,16 +558,11 @@ function M:Update()
 
 	local text = spell or "Cleanse"
 	if grid then
-		for i = 1, #laid do
-			local cell = cells[i]
-			local u = cell.unit
-			local d = hits[u]
-			if d == nil then d = Scan(u) end -- a unit that left the roster since the last Layout
-			PaintCell(cell, d or nil, u == best)
-		end
-		if combat and layoutDirty then text = text .. " |cff999999(roster changed)|r" end
+		if header then PaintHeader(header, hits, best) end
+		if petHeader and petHeader:IsShown() then PaintHeader(petHeader, hits, best) end
 		title:SetText(text)
 		frame:SetAlpha(1)
+		if not combat then FitFrame() end -- the header may have grown or shrunk since the last Layout
 		return
 	end
 
@@ -541,6 +645,13 @@ function M:Init()
 
 	for i = 1, MAX_ROWS do rows[i] = MakeRow(i) end
 
+	header = MakeHeader("LightboundCleanseHeader", "SecureGroupHeaderTemplate")
+	if header then
+		header:SetPoint("TOPLEFT", 4, -TITLE_H)
+		petHeader = MakeHeader("LightboundCleansePetHeader", "SecureGroupPetHeaderTemplate")
+		if petHeader then petHeader:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -GAP) end
+	end
+
 	keyOwner = CreateFrame("Frame")
 	keyBtn = CreateFrame("Button", KEY_BUTTON, UIParent, "SecureActionButtonTemplate")
 	keyBtn:SetSize(1, 1)
@@ -581,7 +692,7 @@ function M:Init()
 			Schedule(false)
 			return
 		end
-		Schedule(true) -- roster, pets, zoning, combat end, spell set: positions may change
+		Schedule(true) -- roster, pets, zoning, combat end, spell set: sizes or options may change
 	end)
 	C_Timer.NewTicker(0.5, function() if frame:IsShown() then M:Update() end end) -- range changes without events
 	ns.ApplyCleanseKey()
@@ -592,7 +703,7 @@ end
 -- Options ----------------------------------------------------------------------------
 ns.optionPages = ns.optionPages or {}
 ns.optionPages[#ns.optionPages + 1] = function(UI)
-	local p = UI.NewPage("Cleanse", "Who needs a Cleanse. Click a cell or row to cast. Positions only change out of combat.")
+	local p = UI.NewPage("Cleanse", "Who needs a Cleanse. Click a cell or row to cast. Layout options apply out of combat.")
 	local W = UI.CONTENT_W
 	local half = math.floor(W / 2)
 	p:Add(UI.Section(p, p.y, "Show") + 2)
@@ -605,8 +716,8 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(UI.Section(p, p.y, "Layout") + 2)
 	p:Add(select(2, UI.Cycle(p, p.y, "Grid or list", { "Grid", "List" },
 		function() return ns.db.clMode == "List" and "List" or "Grid" end,
-		function(v) ns.db.clMode = v; if InCombatLockdown() then ns.Print("cleanse view changes after combat.") end end,
-		function() return ns.db.clMode == "List" and "one row per afflicted unit" or "one cell per group member" end)) + 2)
+		function(v) ns.db.clMode = v end,
+		function() return ns.db.clMode == "List" and "one row per afflicted unit" or "one cell per group member, follows the roster in combat" end)) + 2)
 	p:Add(select(2, UI.Slider(p, p.y, "Grid: cells per row", "clPerRow", 1, 10, 1, "")))
 	p:Add(select(2, UI.Slider(p, p.y, "Grid: cell size", "clCell", 14, 40, 1, " px")))
 	p:Add(select(2, UI.Slider(p, p.y, "List: rows", "clRows", 1, MAX_ROWS, 1, "")))
