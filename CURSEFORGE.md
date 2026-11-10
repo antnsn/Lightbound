@@ -17,7 +17,7 @@ Lightbound buffs your party and raid with a single key, sorts out who blesses wh
 - **Blessing requests.** When someone whispers "kings pls", "bom" or just "buff", a row with their name appears. Click it to bless them.
 
 ## Cleanse, cooldowns and Divine Intervention
-- **Cleanse list.** Group members (and pets) with a Poison, Disease or Magic debuff you can remove. One click per row. Rows keep their targets in combat, so it works mid-fight too.
+- **Cleanse grid.** Decursive-style: one small cell per group member (and pet), coloured and iconed when they carry a Poison, Disease or Magic debuff you can remove. Click a cell to cleanse. Out-of-range players are dimmed. Switch to a list of afflicted units if you prefer. A cleanse key casts on the unit under your mouse (a cell, the list, any raid frame) or your target, in combat too.
 - **Paladin cooldowns.** Every paladin's Blessing of Protection, Freedom and Sacrifice, Divine Shield and Divine Protection, plus your own Forbearance. Shared between Lightbound users.
 - **Divine Intervention picker.** In raids, a short list of healers. Click one to cast Divine Intervention on them, in combat too. Shift-click pins a preferred target. The cast is announced in raid chat.
 - **Resurrection announce.** "Resurrecting <name>" in party or raid chat when Redemption lands.
