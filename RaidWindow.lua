@@ -170,8 +170,9 @@ local function ColX(cid) return NAME_W + (cid - 1) * (CELL + GAP) end
 local AURA_X = ColX(10) + 12
 local JUDGE_X = AURA_X + CELL + GAP
 local CD_X = JUDGE_X + CELL + 18
-local TOTAL_W = CD_X + 2 * (CELL + GAP)
-local CD_ICON = { 135928, 135899 } -- Lay on Hands, Divine Intervention
+local TOTAL_W = CD_X + 3 * (CELL + GAP)
+local CD_ICON = { 135928, 135899, 135964 } -- Lay on Hands, Divine Intervention, Blessing of Protection
+local CD_NAME = { "Lay on Hands", "Divine Intervention", "Blessing of Protection" }
 
 -- Per-player popup: members of one class, click to set their own blessing from this paladin
 local popup
@@ -299,7 +300,7 @@ local function MakeRow(i)
 	end)
 	r.judge:SetPoint("LEFT", r, "LEFT", JUDGE_X, 0)
 	r.cds = {}
-	for k = 1, 2 do
+	for k = 1, 3 do
 		local cd = CreateFrame("Frame", nil, r)
 		cd:SetSize(CELL, CELL)
 		cd:SetPoint("LEFT", r, "LEFT", CD_X + (k - 1) * (CELL + GAP), 0)
@@ -311,7 +312,7 @@ local function MakeRow(i)
 		cd:EnableMouse(true)
 		cd:SetScript("OnEnter", function(self)
 			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-			GameTooltip:AddLine(k == 1 and "Lay on Hands" or "Divine Intervention")
+			GameTooltip:AddLine(CD_NAME[k])
 			GameTooltip:AddLine(self.tip or "unknown", 1, 1, 1)
 			GameTooltip:Show()
 		end)
@@ -351,8 +352,12 @@ local function Refresh()
 			for _ in pairs(ns.GetNormalAssigns(name, cid)) do n = n + 1 end
 			r.cells[cid].badge:SetText(n > 0 and ("+" .. n) or "")
 		end
-		for k = 1, 2 do
+		for k = 1, 3 do
 			local cd, info = r.cds[k], p and p.cd and p.cd[k]
+			if k == 3 then -- Blessing of Protection comes from Cooldowns.lua (Lightbound users only)
+				local c = ns.cds and ns.cds[name] and ns.cds[name].bop
+				info = c and { known = true, readyAt = c.readyAt, dur = c.dur } or nil
+			end
 			local t = CdText(info)
 			cd.text:SetText(t or "")
 			cd.icon:SetDesaturated(not t or not t:find("ok"))

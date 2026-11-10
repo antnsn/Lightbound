@@ -27,6 +27,7 @@ ns.defaults = {
 	trHolyShockSound = false, trMana = true, trManaPct = 30, trManaSound = true,
 	trPoint = { "CENTER", "UIParent", "CENTER", 0, 60 },
 	jaEnabled = true, jaSound = true, jaOnlyMine = false, jaPoint = { "CENTER", "UIParent", "CENTER", 0, 60 }, judgeAssign = {},
+	cdEnabled = true, cdOnlyRaid = false, cdShowSelf = true, cdPoint = { "CENTER", "UIParent", "CENTER", -380, -40 },
 	auraWarn = true, auraOnlyGrouped = false, auraStrict = false, auraChoice = "Devotion",
 	auPoint = { "CENTER", "UIParent", "CENTER", 80, 180 },
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",
