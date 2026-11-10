@@ -9,7 +9,8 @@ ns.modules[#ns.modules + 1] = M
 local ROW_W, ROW_H, MAX_ROWS = 230, 24, 8
 local frame, title, rows = nil, nil, {}
 local requests = {} -- oldest first: { name, unit, guid, class, key, spell, known, at, base }
-local pending       -- request of the last click, until the cast lands
+local pending, pendingAt -- request of the last click, until the cast lands (or fails, or 3 s pass)
+local PENDING_WINDOW = 3
 local isSecret = _G.issecretvalue or function() return false end
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
 
@@ -161,7 +162,7 @@ local function Configure(row)
 		else
 			row:SetAttribute("macrotext", ("/target %s\n/cast [nocombat,@target,help] %s\n/targetlasttarget"):format(r.name, r.spell))
 		end
-		pending = r
+		pending, pendingAt = r, GetTime()
 	else
 		row:SetAttribute("type", nil)
 		pending = nil
@@ -286,6 +287,9 @@ function M:Init()
 	ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 	ev:RegisterEvent("GROUP_ROSTER_UPDATE")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+	ev:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", "player")
+	ev:RegisterUnitEvent("UNIT_SPELLCAST_FAILED_QUIET", "player")
+	ev:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", "player")
 	for _, e in ipairs({ "CHAT_MSG_WHISPER", "CHAT_MSG_PARTY", "CHAT_MSG_PARTY_LEADER", "CHAT_MSG_RAID",
 		"CHAT_MSG_RAID_LEADER", "CHAT_MSG_SAY" }) do
 		ev:RegisterEvent(e)
@@ -297,8 +301,14 @@ function M:Init()
 			-- target can't fire. Just redraw the states.
 			Draw()
 			return
+		elseif event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_FAILED_QUIET" or event == "UNIT_SPELLCAST_INTERRUPTED" then
+			-- out of range, line of sight, ...: the request stays, the click is forgotten
+			if pending and ns.SpellName(a3) == pending.spell then pending = nil end
+			return
 		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local name = ns.SpellName(a3)
+			-- only a cast right after the click counts; a later cast of the same blessing on someone else doesn't
+			if pending and GetTime() - (pendingAt or 0) > PENDING_WINDOW then pending = nil end
 			if pending and name == pending.spell then
 				if pending.guid then
 					local recent = ns.PB.recent

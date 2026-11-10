@@ -60,8 +60,12 @@ local function Changed()
 	M:Update()
 end
 
+-- Entries this session has authority over: your own, ones you set, ones the group sent you.
+-- A full sync only carries these, so joining with stale local state can't erase the group's.
+local authoritative = {}
 local function Store(name, choice)
 	Table()[name] = choice ~= "None" and choice or nil
+	authoritative[name] = true
 end
 
 -- Set paladin `name` to `choice` and tell the group. Checks who may change whom.
@@ -126,10 +130,12 @@ ns.OnLBSync(function(target)
 		parts, len = {}, 0
 	end
 	for _, name in ipairs(ns.GroupPaladins()) do
-		local s = name .. "=" .. ns.GetJudgeAssign(name)
-		if len + #s + 1 > 220 then flush() end
-		parts[#parts + 1] = s
-		len = len + #s + 1
+		if name == ns.MyName() or authoritative[name] then
+			local s = name .. "=" .. ns.GetJudgeAssign(name)
+			if len + #s + 1 > 220 then flush() end
+			parts[#parts + 1] = s
+			len = len + #s + 1
+		end
 	end
 	flush()
 end)
