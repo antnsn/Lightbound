@@ -37,6 +37,9 @@ ns.defaults = {
 	clPoint = { "CENTER", "UIParent", "CENTER", 380, 120 },
 	rqEnabled = true, rqSound = true, rqChat = false, rqGroupOnly = true, rqTTL = 60, rqRows = 4,
 	rqPoint = { "CENTER", "UIParent", "CENTER", -380, -60 },
+	diEnabled = true, diParty = false, diRows = 6, diAnnounce = true, diWarning = true,
+	diPoint = { "CENTER", "UIParent", "CENTER", 300, -60 },
+	rezAnnounce = true, rezWhisper = false,
 }
 
 local isSecret = _G.issecretvalue or function() return false end

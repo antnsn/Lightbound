@@ -22,6 +22,7 @@ Trackers.lua
 Judgements.lua
 Requests.lua
 Cooldowns.lua
+Announce.lua
 Options.lua
 RaidWindow.lua
 Minimap.lua
