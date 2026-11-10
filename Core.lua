@@ -33,7 +33,7 @@ ns.defaults = {
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",
 		SHAMAN = "Wisdom", MAGE = "Wisdom", WARLOCK = "Wisdom", DRUID = "Wisdom" },
 	pbPoint = { "CENTER", "UIParent", "CENTER", 0, -260 },
-	clEnabled = true, clSound = true, clRows = 5, clPets = false, clIgnore = {},
+	clEnabled = true, clSolo = true, clSound = true, clRows = 5, clPets = false, clIgnore = {},
 	clMode = "Grid", clPerRow = 5, clCell = 22, clNames = false, clRange = true,
 	clPoint = { "TOPLEFT", "UIParent", "CENTER", 285, 190 },
 	rqEnabled = true, rqSound = true, rqChat = false, rqGroupOnly = true, rqTTL = 60, rqRows = 4,
@@ -109,13 +109,79 @@ function ns.MakeMovable(frame, key)
 		local p, _, rp, x, y = self:GetPoint()
 		ns.db[key] = { p, "UIParent", rp, x, y }
 	end)
+	-- while unlocked, the mouse wheel scales the frame (saved per frame in db.scales)
+	frame:SetScript("OnMouseWheel", function(self, delta)
+		if not ns.unlocked or InCombatLockdown() then return end
+		local old = self:GetScale()
+		local new = math.floor((old + delta * 0.1) * 10 + 0.5) / 10
+		new = math.max(0.5, math.min(2.5, new))
+		if new == old then return end
+		-- keep the saved anchor point where it is on screen
+		local point = (ns.db[key] and ns.db[key][1]) or "CENTER"
+		local l, r, t, b = self:GetLeft(), self:GetRight(), self:GetTop(), self:GetBottom()
+		if not l then return end
+		local x = point:find("LEFT") and l or point:find("RIGHT") and r or (l + r) / 2
+		local y = point:find("TOP") and t or point:find("BOTTOM") and b or (t + b) / 2
+		self:SetScale(new)
+		ns.db.scales = ns.db.scales or {}
+		ns.db.scales[key] = (new ~= 1) and new or nil
+		ns.db[key] = { point, "UIParent", "BOTTOMLEFT", x * old / new, y * old / new }
+		ns.ApplyPoint(self, key)
+		ns.Print(("frame scale %d%%"):format(new * 100 + 0.5))
+	end)
 	ns.movers[#ns.movers + 1] = { frame = frame, key = key }
 end
 
 function ns.ApplyPoint(frame, key)
 	local p = ns.db[key]
+	local scale = ns.db.scales and ns.db.scales[key] or 1
+	if frame:GetScale() ~= scale then frame:SetScale(scale) end
 	frame:ClearAllPoints()
 	frame:SetPoint(p[1], UIParent, p[3], p[4], p[5])
+end
+
+-- Click-to-cast overlays ----------------------------------------------------------
+-- A secure button laid over a warning icon: click it to cast the spell. It is a separate frame on
+-- UIParent, positioned to match the icon, so the icon itself stays unprotected and can show and
+-- hide in combat. Lua only moves, shows or hides the overlay out of combat. A secure state driver
+-- hides it the moment combat starts (the icon may vanish or move mid-fight), and the next
+-- out-of-combat Sync brings it back. Create overlays out of combat only.
+function ns.CastOverlay(owner)
+	local b = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate, SecureHandlerStateTemplate")
+	b:RegisterForClicks("AnyDown", "AnyUp") -- the secure handler acts on the phase ActionButtonUseKeyDown picks
+	b:SetAttribute("_onstate-lbcombat", [[ if newstate == 1 or newstate == "1" then self:Hide() end ]])
+	RegisterStateDriver(b, "lbcombat", "[combat] 1; 0")
+	b:SetAttribute("type", "macro")
+	b:Hide()
+	b:SetScript("OnEnter", function(self)
+		if not self.spell then return end
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:SetText(self.spell)
+		GameTooltip:AddLine("Click to cast (out of combat)", 1, 1, 1)
+		GameTooltip:Show()
+	end)
+	b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	-- spell nil hides the overlay; call after the owner was shown or hidden
+	function b:Sync(spell, unit)
+		if InCombatLockdown() then return end
+		local left, bottom, w, h = owner:GetRect()
+		if not spell or ns.unlocked or not owner:IsVisible() or not left then
+			self.spell = nil
+			self:Hide()
+			return
+		end
+		local s = owner:GetEffectiveScale() / UIParent:GetEffectiveScale()
+		self:SetFrameStrata(owner:GetFrameStrata())
+		self:SetFrameLevel(owner:GetFrameLevel() + 10)
+		self:ClearAllPoints()
+		self:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left * s, bottom * s)
+		self:SetSize(w * s, h * s)
+		local macro = ("/cast [nocombat,@%s] %s"):format(unit or "player", spell)
+		if self:GetAttribute("macrotext") ~= macro then self:SetAttribute("macrotext", macro) end
+		self.spell = spell
+		self:Show()
+	end
+	return b
 end
 
 -- Modules and events ----------------------------------------------------------
@@ -154,8 +220,8 @@ ns.Print = Print
 function ns.ToggleMove()
 	if InCombatLockdown() then Print("leave combat first.") return end
 	ns.unlocked = not ns.unlocked
-	for _, m in ipairs(ns.movers) do m.frame:EnableMouse(ns.unlocked) end
-	Print(ns.unlocked and "unlocked, drag the frames. Lock them again when done." or "locked.")
+	for _, m in ipairs(ns.movers) do m.frame:EnableMouse(ns.unlocked); m.frame:EnableMouseWheel(ns.unlocked) end
+	Print(ns.unlocked and "unlocked: drag the frames, scroll on one to resize it. Lock them again when done." or "locked.")
 	Refresh()
 end
 
@@ -165,8 +231,9 @@ function ns.ResetPositions()
 	for k, v in pairs(ns.defaults) do
 		if k:find("Point$") then db[k] = CopyTable(v) end
 	end
+	db.scales = nil
 	for _, m in ipairs(ns.movers) do ns.ApplyPoint(m.frame, m.key) end
-	Print("positions reset.")
+	Print("positions and sizes reset.")
 	Refresh()
 end
 

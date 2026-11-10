@@ -56,8 +56,9 @@ More in [screenshots/](screenshots).
 - Blessing requests: when a group member whispers "kings pls", "bom" or just "buff", a row with their name appears; click it to bless them. Rows vanish once they're blessed or after a minute
 - **Divine Intervention picker.** In raids, a short list of healers; click one to cast Divine Intervention on them, in combat too. Shift-click pins a preferred target. The cast is announced in raid chat (raid warning for leaders and assists).
 - **Resurrection announce.** "Resurrecting <name>" in party or raid chat when Redemption lands, optionally whispered to the target.
-- Minimap button and addon compartment entry
-- Every frame can be moved (Unlock frames)
+- Click the Righteous Fury, aura or blessing icons to cast that spell (out of combat)
+- Minimap button and addon compartment entry; shift-click or middle-click it to unlock the frames
+- Every frame can be moved, and resized with the mouse wheel while unlocked
 
 ## Install
 
@@ -74,7 +75,7 @@ More in [screenshots/](screenshots).
 | `/lb raid` | Raid blessings window |
 | `/lb why` | Explains the buff key's choice for every group member |
 | `/lb tank <name>` | Marks or unmarks a tank (no name: lists the tanks) |
-| `/lb move` / `/lb reset` | Unlock frames / reset positions |
+| `/lb move` / `/lb reset` | Unlock frames (drag to move, scroll to resize) / reset positions and sizes |
 | `/lb ignore <debuff>` | Add or remove a debuff from the cleanse list's ignore list; `/lb ignore` shows it |
 | `/lb minimap`, `/lb fed`, `/lb rested`, `/lb rfraid` | Toggle the minimap button, the Well Fed warning, the Well-Rested warning, or Righteous Fury warnings in raids |
 

@@ -6,7 +6,7 @@ local SPELL_ID, SPELL_NAME, ICON = 25780, "Righteous Fury", 135962
 local M = {}
 ns.modules[#ns.modules + 1] = M
 
-local f, pulse
+local f, pulse, cast
 local shown, hasRF = false, nil
 
 local function KnowsSpell()
@@ -35,8 +35,15 @@ end
 -- Used by the party buff key: true when the RF warning would show right now
 function ns.RFNeeded() return f ~= nil and ShouldWarn() end
 
+local Sync = function() end
+
 function M:Update()
 	if not f then return end
+	self:Refresh()
+	Sync()
+end
+
+function M:Refresh()
 	local buffs, hidden = ns.ReadPlayerBuffs()
 	if buffs[SPELL_NAME] then
 		hasRF = true
@@ -64,6 +71,8 @@ function M:Init()
 	f:SetSize(64, 64)
 	f:SetFrameStrata("HIGH")
 	f:Hide()
+	cast = ns.CastOverlay(f)
+	Sync = function() cast:Sync(f:IsShown() and SPELL_NAME or nil) end
 
 	local border = f:CreateTexture(nil, "BACKGROUND")
 	border:SetPoint("TOPLEFT", -3, 3); border:SetPoint("BOTTOMRIGHT", 3, -3)

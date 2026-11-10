@@ -65,8 +65,18 @@ function ns.AuraNeeded()
 	return nil
 end
 
+local cast
+
 function M:Update()
 	if not f then return end
+	self:Refresh()
+	if cast then
+		local want = ns.WantedAura()
+		cast:Sync(f:IsShown() and want and (want .. " Aura") or nil)
+	end
+end
+
+function M:Refresh()
 	Read()
 	local db = ns.db
 	local want = ns.WantedAura()
@@ -91,6 +101,7 @@ function M:Init()
 	f:SetSize(40, 40)
 	f:SetFrameStrata("HIGH")
 	f:Hide()
+	cast = ns.CastOverlay(f)
 	local border = f:CreateTexture(nil, "BACKGROUND")
 	border:SetPoint("TOPLEFT", -2, 2); border:SetPoint("BOTTOMRIGHT", 2, -2)
 	border:SetColorTexture(1, 0.1, 0.1, 0.9)

@@ -146,7 +146,7 @@ end
 
 local function ShouldShow()
 	if ns.unlocked then return true end
-	return ns.db.clEnabled and spell ~= nil and IsInGroup()
+	return ns.db.clEnabled and spell ~= nil and (IsInGroup() or ns.db.clSolo)
 end
 
 local function ClassColor(unit)
@@ -347,7 +347,6 @@ local function MakeHeader(name, template)
 	h:SetAttribute("showParty", true)
 	h:SetAttribute("showRaid", true)
 	h:SetAttribute("showPlayer", true)
-	h:SetAttribute("showSolo", false)
 	h:SetAttribute("groupBy", "GROUP")
 	h:SetAttribute("groupingOrder", "1,2,3,4,5,6,7,8")
 	h:SetAttribute("sortMethod", "INDEX")
@@ -365,6 +364,7 @@ end
 local function ConfigureHeader(h)
 	local size, per = CellSize(), PerRow()
 	h:SetAttribute("initialConfigFunction", InitSnippet())
+	h:SetAttribute("showSolo", ns.db.clSolo and true or false)
 	for _, cell in ipairs({ h:GetChildren() }) do
 		cell:SetSize(size, size)
 		cell:SetAttribute("type", spell and "spell" or nil)
@@ -391,6 +391,7 @@ end
 local function Applied()
 	return applied.mode == wantMode() and applied.size == CellSize() and applied.per == PerRow()
 		and applied.spell == spell and applied.pets == (ns.db.clPets and true or false)
+		and applied.solo == (ns.db.clSolo and true or false)
 end
 
 -- The headers size themselves when they lay out; the frame wraps them. Out of combat only.
@@ -495,7 +496,8 @@ function M:Layout()
 			petHeader:Hide()
 		end
 	end
-	applied = { mode = laidOut, size = CellSize(), per = PerRow(), spell = spell, pets = ns.db.clPets and true or false }
+	applied = { mode = laidOut, size = CellSize(), per = PerRow(), spell = spell, pets = ns.db.clPets and true or false,
+		solo = ns.db.clSolo and true or false }
 	-- placeholder cells: five fake members while unlocked
 	local size, per = CellSize(), PerRow()
 	for i = 1, #PLACEHOLDER do
@@ -725,6 +727,8 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(28)
 	UI.DBToggle(p, 0, p.y, half, "clRange", "Dim players out of range")
 	UI.DBToggle(p, half, p.y, half, "clSound", "Sound when someone new needs it")
+	p:Add(28)
+	UI.DBToggle(p, 0, p.y, W, "clSolo", "Show when solo (just you, and your pet with pets on)")
 	p:Add(30)
 	p:Add(UI.Section(p, p.y, "Layout") + 2)
 	p:Add(select(2, UI.Cycle(p, p.y, "Grid or list", { "Grid", "List" },

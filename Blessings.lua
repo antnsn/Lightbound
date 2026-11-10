@@ -56,6 +56,7 @@ local function Icon(i)
 	b.tex:SetAllPoints(); b.tex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 	b.time = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 	b.time:SetPoint("TOP", b, "BOTTOM", 0, -3)
+	b.cast = ns.CastOverlay(b)
 	icons[i] = b
 	return b
 end
@@ -96,8 +97,14 @@ local function Draw()
 			ic.time:SetText(e.left and FormatTime(e.left) or "")
 		end
 		ic:Show()
+		ic.spellName = IsPlayerSpell and IsPlayerSpell(e.b.spell) and ("Blessing of " .. e.b.key) or nil
 	end
 	f:Show()
+end
+
+-- overlays follow the icons; out of combat only (CastOverlay checks)
+local function SyncCasts()
+	for _, ic in ipairs(icons) do ic.cast:Sync(ic:IsVisible() and ic.spellName or nil) end
 end
 
 local function ShouldShow()
@@ -113,6 +120,7 @@ function M:Update()
 	if not f then return end
 	Read()
 	if ShouldShow() then Draw() else f:Hide() end
+	SyncCasts()
 end
 
 function M:Init()
@@ -120,6 +128,7 @@ function M:Init()
 	f:SetSize(SIZE, SIZE)
 	f:SetFrameStrata("MEDIUM")
 	f:Hide()
+	for i = 1, #ns.BLESSINGS do Icon(i):Hide() end -- create every icon and its overlay now, out of combat
 	ns.MakeMovable(f, "blPoint")
 	ns.ApplyPoint(f, "blPoint")
 	local ev = CreateFrame("Frame")

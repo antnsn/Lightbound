@@ -35,8 +35,9 @@ Lightbound buffs your party and raid with a single key, sorts out who blesses wh
 
 ## Quality of life
 - Buys Symbol of Kings and Symbol of Divinity automatically at vendors, and warns when you run low
-- Classic WoW-style options window (`/lb`), minimap button and addon compartment entry
-- Every frame can be moved
+- Click the Righteous Fury, aura or blessing icons to cast that spell (out of combat)
+- Classic WoW-style options window (`/lb`), minimap button and addon compartment entry; shift-click the minimap button to unlock the frames
+- Every frame can be moved, and resized with the mouse wheel while unlocked
 
 ## Commands
 - `/lb` options

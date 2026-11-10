@@ -24,7 +24,9 @@ local function OnDragUpdate()
 end
 
 local function OnClick(_, button)
-	if button == "RightButton" then
+	if button == "MiddleButton" or (button ~= "RightButton" and IsShiftKeyDown()) then
+		if ns.ToggleMove then ns.ToggleMove() end
+	elseif button == "RightButton" then
 		if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end
 	else
 		if ns.ToggleOptions then ns.ToggleOptions() end
@@ -41,7 +43,7 @@ function M:Init()
 	btn:SetSize(31, 31)
 	btn:SetFrameStrata("MEDIUM")
 	btn:SetFrameLevel(8)
-	btn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	btn:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
 	btn:RegisterForDrag("LeftButton")
 	btn:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 
@@ -77,6 +79,7 @@ function M:Init()
 		GameTooltip:AddLine("Lightbound")
 		GameTooltip:AddLine("Left-click: options", 1, 1, 1)
 		GameTooltip:AddLine("Right-click: raid blessings", 1, 1, 1)
+		GameTooltip:AddLine((ns.unlocked and "Shift-click: lock frames" or "Shift-click: unlock frames"), 1, 1, 1)
 		GameTooltip:AddLine("Drag: move", 0.6, 0.6, 0.6)
 		GameTooltip:Show()
 	end)
