@@ -48,6 +48,8 @@ More in [screenshots/](screenshots).
 
 **Quality of life**
 - Buys Symbol of Kings and Symbol of Divinity automatically at vendors, and warns when you run low
+- **Divine Intervention picker.** In raids, a short list of healers; click one to cast Divine Intervention on them, in combat too. Shift-click pins a preferred target. The cast is announced in raid chat (raid warning for leaders and assists).
+- **Resurrection announce.** "Resurrecting <name>" in party or raid chat when Redemption lands, optionally whispered to the target.
 - Minimap button and addon compartment entry
 - Every frame can be moved (Unlock frames)
 

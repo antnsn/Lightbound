@@ -28,6 +28,9 @@ ns.defaults = {
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",
 		SHAMAN = "Wisdom", MAGE = "Wisdom", WARLOCK = "Wisdom", DRUID = "Wisdom" },
 	pbPoint = { "CENTER", "UIParent", "CENTER", 0, -260 },
+	diEnabled = true, diParty = false, diRows = 6, diAnnounce = true, diWarning = true,
+	diPoint = { "CENTER", "UIParent", "CENTER", 300, -60 },
+	rezAnnounce = true, rezWhisper = false,
 }
 
 local isSecret = _G.issecretvalue or function() return false end
