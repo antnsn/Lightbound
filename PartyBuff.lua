@@ -77,10 +77,12 @@ local function Units()
 end
 
 -- Group assignments (Group.lua; PallyPower-compatible) ------------------------------
--- "Own" or "Group", from the setting (Auto picks Group when anyone assigned you blessings)
+-- "Own" or "Group", from the setting. Auto picks Group only in a raid where you have group
+-- assignments; solo and in a party your class list and aura choice win.
 function ns.PartyBuffSource()
 	local s = ns.db.pbSource
-	if s == "Group" or (s == "Auto" and ns.HasAssignments and ns.HasAssignments()) then return "Group" end
+	if s == "Group" then return "Group" end
+	if s == "Auto" and ns.HasAssignments and ns.HasAssignments() and IsInRaid() then return "Group" end
 	return "Own"
 end
 

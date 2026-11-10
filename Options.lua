@@ -413,7 +413,7 @@ local function BuildKey()
 		function() return "using " .. ns.PartyBuffSource() end)) + 2)
 	local n = Font(p, 12, C.dim)
 	n:SetPoint("TOPLEFT", 0, p.y); n:SetPoint("RIGHT", p, "RIGHT")
-	n:SetText("Auto: the group assignments (/lb raid, also from PallyPower users) when you have any, otherwise your class list.")
+	n:SetText("Auto: the group assignments (/lb raid, also from PallyPower users) in raids when you have any, otherwise your own list.")
 	p:Add(30)
 	local rb = Button(p, "Open raid blessings", 170, 26, true)
 	rb:SetPoint("TOPLEFT", 0, p.y)
@@ -427,7 +427,7 @@ local function BuildKey()
 end
 
 local function BuildClasses()
-	local p = NewPage("Class blessings", "Your own blessing per class. Used when Assignments is Own, or Auto with no group assignments.")
+	local p = NewPage("Class blessings", "Your own blessing per class. Used when Assignments is Own, or Auto outside raids (or in a raid with no group assignments).")
 	for _, class in ipairs(ns.CLASSES) do
 		local name = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[class]) or class
 		local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
