@@ -11,7 +11,9 @@ ns.modules[#ns.modules + 1] = M
 ns.optionPages = ns.optionPages or {}
 
 local isSecret = _G.issecretvalue or function() return false end
+local RESTRICTED = _G.PP_RESTRICTED or "<restricted>" -- placeholder the client returns for hidden aura names
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
+local function CleanName(v) v = Clean(v); if v == RESTRICTED then return nil end return v end
 
 local RECKONING_ID, RECKONING_MAX, RECKONING_TIME = 20178, 4, 8
 local CONSECRATION_TIME = 8
@@ -117,7 +119,7 @@ local function ReadReckoning()
 		local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex, "player", i, "HELPFUL")
 		if not ok then return nil, nil, true end
 		if not a then break end
-		local name, id, icon = Clean(a.name), Clean(a.spellId), Clean(a.icon)
+		local name, id, icon = CleanName(a.name), Clean(a.spellId), Clean(a.icon)
 		if name == "Reckoning" or id == RECKONING_ID or (name == nil and reckIcon and icon == reckIcon) then
 			return Stacks(a), icon
 		end
@@ -224,7 +226,7 @@ local function HasWisdom()
 		local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex, "target", i, "HARMFUL|PLAYER")
 		if not ok then unreadable = true break end
 		if not a then break end
-		local name = Clean(a.name)
+		local name = CleanName(a.name)
 		if not name then unreadable = true
 		elseif name == "Judgement of Wisdom" then return true end
 	end

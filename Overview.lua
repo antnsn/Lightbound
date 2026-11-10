@@ -93,7 +93,8 @@ local function Configure(row)
 	if c and c.unit and c.spell then
 		row:SetAttribute("type", "macro")
 		row:SetAttribute("macrotext", ("/cast [nocombat,@%s] %s"):format(c.unit, c.spell))
-		pending = { spell = c.spell, key = c.key, class = c.class, guid = UnitGUID(c.unit), greater = c.greater }
+		-- single-target casts record the key actually cast on that unit (a tank's substitute differs from c.key)
+		pending = { spell = c.spell, key = c.greater and c.key or (c.unitKey or c.key), class = c.class, guid = UnitGUID(c.unit), greater = c.greater }
 	else
 		row:SetAttribute("type", nil)
 		pending = nil
