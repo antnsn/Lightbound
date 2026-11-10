@@ -175,7 +175,13 @@ function M:Update()
 	local combat = InCombatLockdown()
 	if ns.unlocked and not combat then
 		frame:Show(); frame:SetAlpha(1)
-		for i, row in ipairs(rows) do row:SetShown(i <= Rows()) end
+		-- placeholders must not cast or eat the drag: clear the secure action and mouse on every row
+		for i, row in ipairs(rows) do
+			Map(row, nil)
+			row:EnableMouse(false)
+			row.unit, row.data = nil, nil
+			row:SetShown(i <= Rows())
+		end
 		frame:SetHeight(TITLE_H + Rows() * (ROW_H + 2) + 6)
 		Placeholder()
 		return
