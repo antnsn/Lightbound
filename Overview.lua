@@ -38,14 +38,16 @@ local function Scan()
 	for _, unit in ipairs(PB.Units()) do
 		if UnitExists(unit) and UnitIsConnected(unit) and not UnitIsDeadOrGhost(unit) then
 			local _, class = UnitClass(unit)
-			local key, greaterOK = nil, false
-			if class then key, greaterOK = PB.Assignment(unit, class, source) end
+			local key, greaterOK, tankNote = nil, false, nil
+			if class then key, greaterOK, tankNote = PB.Assignment(unit, class, source) end
 			if key then
 				local c = byClass[class]
 				if not c then
-					c = { class = class, key = key, total = 0, missing = 0, low = 0, minLeft = math.huge, greaterOK = true }
+					c = { class = class, key = key, total = 0, missing = 0, low = 0, minLeft = math.huge, greaterOK = true, sub = tankNote ~= nil }
 					byClass[class] = c
 					order[#order + 1] = c
+				elseif c.sub and not tankNote then
+					c.key, c.sub = key, false -- the row shows the class blessing, not a tank's substitute
 				end
 				if not greaterOK then c.greaterOK = false end -- someone has a per-player blessing
 				c.total = c.total + 1

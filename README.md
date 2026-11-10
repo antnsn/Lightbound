@@ -36,6 +36,7 @@ More in [screenshots/](screenshots).
   - Shows Lay on Hands and Divine Intervention cooldowns, Symbol of Kings counts, and Improved Might/Wisdom talents, which auto-assign takes into account.
 - **Raid overview.** One row per class you bless, showing how many are missing it and the shortest time left. Click a row to bless that class.
 - **Own class choices.** A blessing per class for when you're not in a raid.
+- **Tank guard.** Never Blessing of Salvation on a tank: marked tanks, raid main tanks and assists get another blessing instead (Might for warriors and druids, Kings otherwise, per class under **Tanks**). The tank list is shared between Lightbound paladins.
 
 **Warnings and trackers**
 - Righteous Fury missing while grouped (party, raid, open world)
@@ -65,6 +66,7 @@ More in [screenshots/](screenshots).
 | `/lb` | Options window |
 | `/lb raid` | Raid blessings window |
 | `/lb why` | Explains the buff key's choice for every group member |
+| `/lb tank <name>` | Marks or unmarks a tank (no name: lists the tanks) |
 | `/lb move` / `/lb reset` | Unlock frames / reset positions |
 | `/lb minimap`, `/lb fed`, `/lb rested`, `/lb rfraid` | Toggle the minimap button, the Well Fed warning, the Well-Rested warning, or Righteous Fury warnings in raids |
 
