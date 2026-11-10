@@ -45,6 +45,7 @@ More in [screenshots/](screenshots).
 - Hammer of Wrath (target below 20%) and Exorcism (undead/demon) alerts
 - Your Judgement on the target, plus a reminder when it's missing in combat
 - Well-Rested and Well Fed: a warning before they run out, and when Well Fed is gone
+- Cleanse list: group members (and pets) with a Poison, Disease or Magic debuff you can remove, one click per row, with a sound and an ignore list. Rows keep their targets while you're in combat
 
 **Quality of life**
 - Buys Symbol of Kings and Symbol of Divinity automatically at vendors, and warns when you run low
@@ -66,6 +67,7 @@ More in [screenshots/](screenshots).
 | `/lb raid` | Raid blessings window |
 | `/lb why` | Explains the buff key's choice for every group member |
 | `/lb move` / `/lb reset` | Unlock frames / reset positions |
+| `/lb ignore <debuff>` | Add or remove a debuff from the cleanse list's ignore list; `/lb ignore` shows it |
 | `/lb minimap`, `/lb fed`, `/lb rested`, `/lb rfraid` | Toggle the minimap button, the Well Fed warning, the Well-Rested warning, or Righteous Fury warnings in raids |
 
 The buff key is set under **Buff key** in `/lb`.
