@@ -64,13 +64,21 @@ local function FindUnit(r)
 end
 
 -- The blessing to cast: the one asked for, else the assigned one for their class, else Kings/Might.
+-- An explicit ask still goes through the tank guard (a tank asking for Salvation gets the
+-- replacement, or nil when it's set to None). Second value: a note for the tooltip.
 local function Resolve(key, unit, class)
-	if key ~= "*" then return key end
-	if unit and class then
-		local assigned = ns.PB.Assignment(unit, class, ns.PartyBuffSource())
-		if assigned then return assigned end
+	if key == "*" then
+		if unit and class then
+			local assigned = ns.PB.Assignment(unit, class, ns.PartyBuffSource()) -- already tank-guarded
+			if assigned then return assigned end
+		end
+		return ns.PB.SpellKnown("Blessing of Kings") and "Kings" or "Might"
 	end
-	return ns.PB.SpellKnown("Blessing of Kings") and "Kings" or "Might"
+	if unit and class and ns.TankAssignment then
+		local guarded, _, note = ns.TankAssignment(unit, class, key, false)
+		return guarded, note
+	end
+	return key
 end
 
 local function Find(name)
@@ -91,7 +99,12 @@ local function Add(name, guid, key)
 		local ok, _, c = pcall(GetPlayerInfoByGUID, guid)
 		if ok then class = Clean(c) end
 	end
-	key = Resolve(key, unit, class)
+	local note
+	key, note = Resolve(key, unit, class)
+	if not key then
+		if note then ns.Print(("%s asks for Salvation: %s"):format(name, note)) end
+		return
+	end
 	if new then
 		while #requests >= ns.db.rqRows do table.remove(requests, 1) end
 		requests[#requests + 1] = r

@@ -26,6 +26,7 @@ local SOUND_GAP = 10
 
 local frame, icons = nil, {}
 local lastSound, lastCast = 0, 0
+local lastCastName -- "Judgement of X" from the seal that was up when you last judged (nil when unreadable)
 local plan, planMine, planAt = nil, nil, 0 -- cached Plan(); GroupPaladins() rescans talents, so not every tick
 
 local function Texture(spell)
@@ -246,7 +247,8 @@ function M:Update()
 	local found, hidden, unknown = ReadTarget()
 	if unknown then Show(list, "unknown", nil, mine) return end
 	-- your own Judgement can be left out of a partly hidden list: trust your last cast for a while
-	if mine and hidden and not found[DEBUFF[mine]] and GetTime() - lastCast < JUDGEMENT_TIME then
+	-- (only when the seal you judged with matches your assignment)
+	if mine and hidden and not found[DEBUFF[mine]] and lastCastName == DEBUFF[mine] and GetTime() - lastCast < JUDGEMENT_TIME then
 		found[DEBUFF[mine]] = JUDGEMENT_TIME - (GetTime() - lastCast)
 	end
 	Show(list, "known", found, mine)
@@ -273,9 +275,16 @@ function M:Init()
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 	ev:SetScript("OnEvent", function(_, event, _, _, spellID)
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
-			if ns.SpellName(spellID) == "Judgement" then lastCast = GetTime() end
+			if ns.SpellName(spellID) == "Judgement" then
+				lastCast = GetTime()
+				-- which Judgement that was: from the seal on you right now (read before the client eats it)
+				local seal
+				local buffs = ns.ReadPlayerBuffs()
+				for bname in pairs(buffs) do if bname:find("^Seal of") then seal = bname end end
+				lastCastName = seal and (seal:gsub("^Seal of ", "Judgement of ")) or nil
+			end
 		elseif event == "PLAYER_TARGET_CHANGED" then
-			lastCast = 0
+			lastCast, lastCastName = 0, nil
 		elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_REGEN_DISABLED" then
 			planAt = 0
 		end
