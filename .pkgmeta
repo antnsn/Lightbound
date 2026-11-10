@@ -6,3 +6,5 @@ ignore:
   - README.md
   - Lightbound.png
   - screenshots
+  - .claude
+  - .gitignore

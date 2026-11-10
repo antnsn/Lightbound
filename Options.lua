@@ -22,7 +22,7 @@ local C = {
 	track = { 0.24, 0.18, 0.11, 1 },
 	button = { 0.10, 0.075, 0.05, 1 },
 }
-local WIDTH, HEIGHT, SIDE_W, HEADER_H, FOOTER_H = 760, 560, 170, 44, 52
+local WIDTH, HEIGHT, SIDE_W, HEADER_H, FOOTER_H = 760, 620, 170, 44, 52
 local PAD = 26
 local CONTENT_W = WIDTH - SIDE_W - PAD * 2
 
@@ -546,16 +546,18 @@ local function Build()
 	BuildOverview(); BuildReagents(); BuildRested()
 	for _, build in ipairs(ns.optionPages) do build(ns.UI) end
 
+	-- sidebar rows shrink when there are many pages so they all fit
+	local step = math.min(36, math.floor((HEIGHT - HEADER_H - FOOTER_H - 20) / #pages))
 	for i, pg in ipairs(pages) do
 		local nb = CreateFrame("Button", nil, side)
-		nb:SetSize(SIDE_W - 1, 34)
-		nb:SetPoint("TOPLEFT", 0, -10 - (i - 1) * 36)
+		nb:SetSize(SIDE_W - 1, step - 2)
+		nb:SetPoint("TOPLEFT", 0, -10 - (i - 1) * step)
 		nb.bg = nb:CreateTexture(nil, "BACKGROUND")
 		nb.bg:SetTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
 		nb.bg:SetBlendMode("ADD"); nb.bg:SetVertexColor(1, 0.75, 0.25, 0.75)
 		nb.bg:SetAllPoints(); nb.bg:Hide()
 		nb.bar = Tex(nb, "ARTWORK", C.accent); nb.bar:SetPoint("TOPLEFT"); nb.bar:SetPoint("BOTTOMLEFT"); nb.bar:SetWidth(3); nb.bar:Hide()
-		nb.text = Font(nb, 14, C.dim); nb.text:SetPoint("LEFT", 18, 0); nb.text:SetText(pg.title)
+		nb.text = Font(nb, step < 30 and 13 or 14, C.dim); nb.text:SetPoint("LEFT", 18, 0); nb.text:SetText(pg.title)
 		nb:SetScript("OnClick", function() Select(i) end)
 		nb:SetScript("OnEnter", function(self) if not pg.frame:IsShown() then self.text:SetTextColor(unpack(C.text)) end end)
 		nb:SetScript("OnLeave", function(self) if not pg.frame:IsShown() then self.text:SetTextColor(unpack(C.dim)) end end)

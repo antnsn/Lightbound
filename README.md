@@ -6,7 +6,7 @@ An all-in-one paladin addon for **World of Warcraft: Forever** (interface 16001)
 
 Lightbound replaces PallyPower and speaks PallyPower's addon-message format (`PLPWR`). Paladins who still run PallyPower see you, can assign you, and receive your assignments.
 
-> **Status:** early. Built and used on Forever. Raid sync with PallyPower users hasn't been tested much yet, so please report issues.
+> **Status:** 4.0 adds a lot at once (cleanse list, tank guard, judgement assignments, paladin cooldowns, DI picker, requests, trackers). It is built for Forever but the new modules have had little in-game testing yet, so please report issues.
 
 ## Screenshots
 
