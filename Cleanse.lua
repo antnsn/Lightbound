@@ -31,6 +31,7 @@ local FONT = "Fonts\\ARIALN.TTF"
 local KEY_BUTTON = "LightboundCleanseKeyButton"
 local frame, title, rows = nil, nil, {}
 local header, petHeader              -- SecureGroupHeader (players) and SecureGroupPetHeader (pets)
+local MAX_CELLS = 40                 -- players or pets one header can hold (pre-created out of combat)
 local placeholders = {}              -- plain cells drawn while the frames are unlocked
 local keyBtn, keyOwner, keyPending
 local spell, types                   -- "Cleanse"/"Purify" and the debuff types it removes
@@ -301,12 +302,12 @@ local function PaintCell(cell, d, best)
 end
 
 -- Paints every cell the header currently shows, reading the unit the header gave it (it may
--- have been reassigned in combat). Cells born in combat wait for their visuals until it ends.
+-- have been reassigned in combat). Cells are pre-created and styled by ConfigureHeader; should
+-- one still lack visuals, textures and font strings may be created in combat (not protected).
 local function PaintHeader(h, hits, best)
-	local combat = InCombatLockdown()
 	for _, cell in ipairs({ h:GetChildren() }) do
-		if cell:IsShown() and (cell.bg or not combat) then
-			if not cell.bg then Style(cell, true) end
+		if cell:IsShown() then
+			if not cell.bg then pcall(Style, cell, true) end
 			local unit = cell:GetAttribute("unit")
 			cell.unit = unit
 			if unit then
@@ -372,6 +373,18 @@ local function ConfigureHeader(h)
 	end
 	h:SetAttribute("columnSpacing", GAP)
 	h:SetAttribute("maxColumns", math.ceil(40 / per))
+	-- Pre-create every child now (out of combat): a negative startingIndex makes the header build
+	-- buttons for the indices below 1 as well, so a member who joins mid-fight gets a cell that
+	-- already has its visuals. Same trick as oUF/ShadowedUF.
+	if not h.preallocated then
+		h.preallocated = true
+		h:SetAttribute("startingIndex", -(MAX_CELLS - 1))
+		h:Show()
+		h:SetAttribute("startingIndex", 1)
+		for _, cell in ipairs({ h:GetChildren() }) do
+			if not cell.bg then Style(cell, true) end
+		end
+	end
 	h:SetAttribute("unitsPerColumn", per)
 end
 
