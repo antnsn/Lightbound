@@ -28,6 +28,8 @@ ns.defaults = {
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",
 		SHAMAN = "Wisdom", MAGE = "Wisdom", WARLOCK = "Wisdom", DRUID = "Wisdom" },
 	pbPoint = { "CENTER", "UIParent", "CENTER", 0, -260 },
+	clEnabled = true, clSound = true, clRows = 5, clPets = false, clIgnore = {},
+	clPoint = { "CENTER", "UIParent", "CENTER", 380, 120 },
 }
 
 local isSecret = _G.issecretvalue or function() return false end
@@ -175,6 +177,18 @@ SlashCmdList.LIGHTBOUND = function(msg)
 		return
 	elseif cmd == "minimap" then
 		db.minimap = not db.minimap; Print("minimap button " .. OnOff(db.minimap))
+	elseif cmd == "ignore" then
+		db.clIgnore = db.clIgnore or {}
+		if arg and arg ~= "" then
+			db.clIgnore[arg] = not db.clIgnore[arg] or nil
+			Print("cleanse list " .. (db.clIgnore[arg] and "ignores" or "no longer ignores") .. " '" .. arg .. "'")
+		else
+			local names = {}
+			for n in pairs(db.clIgnore) do names[#names + 1] = n end
+			table.sort(names)
+			Print("ignored debuffs: " .. (#names > 0 and table.concat(names, ", ") or "none") .. ". /lb ignore <name> toggles one.")
+			return
+		end
 	elseif cmd == "why" then
 		if ns.ExplainPartyBuff then ns.ExplainPartyBuff() end
 		return
@@ -187,7 +201,7 @@ SlashCmdList.LIGHTBOUND = function(msg)
 		return
 	else
 		Print("/lb opens the options window. Commands: toggle " .. OnOff(db.enabled) .. ", sound " .. OnOff(db.sound) .. ", rfraid " .. OnOff(db.raid)
-			.. ", world " .. OnOff(db.world) .. ", seal " .. OnOff(db.seal) .. ", empty " .. OnOff(db.sealEmptyInCombat) .. ", height <n>, rested " .. OnOff(db.wellRested) .. ", raid (blessings window), minimap " .. OnOff(db.minimap) .. ", why, move, reset")
+			.. ", world " .. OnOff(db.world) .. ", seal " .. OnOff(db.seal) .. ", empty " .. OnOff(db.sealEmptyInCombat) .. ", height <n>, rested " .. OnOff(db.wellRested) .. ", raid (blessings window), minimap " .. OnOff(db.minimap) .. ", ignore <debuff>, why, move, reset")
 		return
 	end
 	Refresh()
