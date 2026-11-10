@@ -17,6 +17,7 @@ PartyBuff.lua
 Overview.lua
 Reagents.lua
 Combat.lua
+Judgements.lua
 Options.lua
 RaidWindow.lua
 Minimap.lua

@@ -23,6 +23,7 @@ ns.defaults = {
 	reagentBuy = true, reagentKings = 100, reagentDivinity = 5, reagentWarn = 20,
 	procEnabled = true, procSound = true, prPoint = { "CENTER", "UIParent", "CENTER", 0, 110 },
 	judgeEnabled = true, judgeMissing = true, jdPoint = { "CENTER", "UIParent", "CENTER", -90, 110 },
+	jaEnabled = true, jaSound = true, jaOnlyMine = false, jaPoint = { "CENTER", "UIParent", "CENTER", 0, 60 }, judgeAssign = {},
 	auraWarn = true, auraOnlyGrouped = false, auraStrict = false, auraChoice = "Devotion",
 	auPoint = { "CENTER", "UIParent", "CENTER", 80, 180 },
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",

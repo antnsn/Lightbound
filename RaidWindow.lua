@@ -1,6 +1,7 @@
 -- Raid blessings window (/lb raid): one row per paladin in the group, one column per class
--- plus the aura. Click a cell to change it (left = next, right = previous). The group leader and
--- assists can change every row, others only their own (or anyone who allows it).
+-- plus the aura and the Judgement (Lightbound users only, see Judgements.lua). Click a cell to change
+-- it (left = next, right = previous). The group leader and assists can change every row, others only
+-- their own (or anyone who allows it).
 local _, ns = ...
 
 local win, rows, header = nil, {}, {}
@@ -167,7 +168,8 @@ end
 
 local function ColX(cid) return NAME_W + (cid - 1) * (CELL + GAP) end
 local AURA_X = ColX(10) + 12
-local CD_X = AURA_X + CELL + 18
+local JUDGE_X = AURA_X + CELL + GAP
+local CD_X = JUDGE_X + CELL + 18
 local TOTAL_W = CD_X + 2 * (CELL + GAP)
 local CD_ICON = { 135928, 135899 } -- Lay on Hands, Divine Intervention
 
@@ -279,6 +281,23 @@ local function MakeRow(i)
 		GameTooltip:Show()
 	end)
 	r.aura:SetPoint("LEFT", r, "LEFT", AURA_X, 0)
+	r.judge = Cell(r, function(self, button)
+		if not ns.CanControl(r.pally) then ns.Print("only the leader or an assist can change " .. r.pally .. ".") return end
+		if not ns.SetJudgeAssign then return end
+		local cur = ns.GetJudgeAssign(r.pally)
+		ns.SetJudgeAssign(r.pally, Step(ns.JUDGEMENTS, cur, button == "RightButton" and -1 or 1))
+	end, function(self)
+		local c = ns.GetJudgeAssign and ns.GetJudgeAssign(r.pally) or "None"
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(r.pally .. " > Judgement")
+		GameTooltip:AddLine(c ~= "None" and ("Judgement of " .. (c == "Crusader" and "the Crusader" or c)) or "No Judgement assigned", 1, 1, 1)
+		local p = ns.pallys[r.pally]
+		if r.pally ~= ns.MyName() and not (p and p.lightbound) then
+			GameTooltip:AddLine("Only paladins running Lightbound see this.", 0.6, 0.6, 0.6)
+		end
+		GameTooltip:Show()
+	end)
+	r.judge:SetPoint("LEFT", r, "LEFT", JUDGE_X, 0)
 	r.cds = {}
 	for k = 1, 2 do
 		local cd = CreateFrame("Frame", nil, r)
@@ -342,6 +361,8 @@ local function Refresh()
 		end
 		local aidx = ns.GetAuraAssign(name)
 		r.aura:Set(aidx > 0 and AuraTexture(aidx) or nil, edit)
+		local jc = ns.GetJudgeAssign and ns.GetJudgeAssign(name) or "None"
+		r.judge:Set(jc ~= "None" and ns.JudgeTexture(jc) or nil, edit)
 		r:Show()
 	end
 	for i = #list + 1, #rows do rows[i]:Hide() end
@@ -401,6 +422,9 @@ local function Build()
 		header[cid] = t
 	end
 	local al = UI.Font(cols, 12, C.dim); al:SetPoint("LEFT", AURA_X - 2, 0); al:SetText("AURA")
+	local jt = cols:CreateTexture(nil, "ARTWORK") -- Judgement column: the icon, the word doesn't fit
+	jt:SetSize(22, 22); jt:SetPoint("LEFT", JUDGE_X + (CELL - 22) / 2, 0)
+	jt:SetTexture(ns.JudgeTexture and ns.JudgeTexture("None") or 135959); jt:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 	local cl = UI.Font(cols, 12, C.dim); cl:SetPoint("LEFT", CD_X + 4, 0); cl:SetText("COOLDOWNS")
 
 	win.body = CreateFrame("Frame", nil, win)

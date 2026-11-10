@@ -44,6 +44,7 @@ More in [screenshots/](screenshots).
 - Blessings on yourself, with time left
 - Hammer of Wrath (target below 20%) and Exorcism (undead/demon) alerts
 - Your Judgement on the target, plus a reminder when it's missing in combat
+- Judgement assignments: who keeps Wisdom, Light, Crusader or Justice on the boss, set in the raid window's Judgement column and shared with the other Lightbound paladins. In combat, an icon per assigned Judgement shows whether it's on your target, with a sound when yours is missing
 - Well-Rested and Well Fed: a warning before they run out, and when Well Fed is gone
 
 **Quality of life**
