@@ -532,7 +532,8 @@ function M:Init()
 	title:SetTextColor(1, 0.82, 0)
 	ns.MakeMovable(frame, "clPoint")
 	ns.ApplyPoint(frame, "clPoint")
-	frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing(); SaveTopLeft(self) end)
+	-- re-anchor top-left after a drag, so growth (more members, bigger cells) goes down/right
+	frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing(); SaveTopLeft(self); ns.ApplyPoint(self, "clPoint") end)
 	if ns.db.clPoint[1] ~= "TOPLEFT" then SaveTopLeft(frame); ns.ApplyPoint(frame, "clPoint") end -- pre-grid position
 
 	for i = 1, MAX_ROWS do rows[i] = MakeRow(i) end
