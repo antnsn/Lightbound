@@ -48,7 +48,7 @@ More in [screenshots/](screenshots).
 - Trackers row: Reckoning stacks (gold at 4), Consecration countdown, Holy Shock cooldown, and a Judgement of Wisdom reminder when your mana runs low
 - Judgement assignments: who keeps Wisdom, Light, Crusader or Justice on the boss, set in the raid window's Judgement column and shared with the other Lightbound paladins. In combat, an icon per assigned Judgement shows whether it's on your target, with a sound when yours is missing
 - Well-Rested and Well Fed: a warning before they run out, and when Well Fed is gone
-- Cleanse list: group members (and pets) with a Poison, Disease or Magic debuff you can remove, one click per row, with a sound and an ignore list. Rows keep their targets while you're in combat
+- Cleanse: a Decursive-style grid of the group (and pets), one cell per member, coloured by the Poison, Disease or Magic debuff you can remove; click to cleanse. A list view is the alternative. Dims out-of-range players, plays a sound, has an ignore list, and a key that cleanses whatever is under your mouse (a cell, the list, any raid frame) or else your target, in combat too
 - Paladin cooldowns: every paladin's Blessing of Protection, Freedom and Sacrifice, Divine Shield and Divine Protection (plus your own Forbearance), shared between Lightbound users
 
 **Quality of life**

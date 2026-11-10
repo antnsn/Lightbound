@@ -292,10 +292,57 @@ local function NewPage(title, subtitle)
 	return p
 end
 
+-- Key binder: label, the key button and a Clear button. Click, then press a key (Esc cancels);
+-- the combo goes to ns.db[dbKey] and onSet(combo or nil) runs. `what` names it in chat. Height 40.
+local capturers = {} -- key buttons; a capture in progress stops when the window hides
+local KEY_MODS = { LSHIFT = 1, RSHIFT = 1, LCTRL = 1, RCTRL = 1, LALT = 1, RALT = 1, LMETA = 1, RMETA = 1 }
+local function KeyButton(page, y, label, dbKey, onSet, what)
+	local kl = Font(page, 14, C.text)
+	kl:SetPoint("TOPLEFT", 0, y - 5)
+	kl:SetText(label)
+	local clear = Button(page, "Clear", 70, 26)
+	clear:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, y)
+	local keyBtn = Button(page, "", 190, 26, true)
+	keyBtn:SetPoint("RIGHT", clear, "LEFT", -8, 0)
+	keyBtn.Sync = function(self)
+		if self.capturing then return end
+		self:SetLabel(ns.db[dbKey] or "Click to set")
+	end
+	local function Stop()
+		keyBtn.capturing = false
+		keyBtn:EnableKeyboard(false)
+		keyBtn:SetScript("OnKeyDown", nil)
+		keyBtn:Sync()
+	end
+	keyBtn.Stop = Stop
+	keyBtn:SetScript("OnClick", function(self)
+		if InCombatLockdown() then ns.Print("leave combat first.") return end
+		self.capturing = true
+		self:SetLabel("Press a key  (Esc cancels)")
+		self:EnableKeyboard(true)
+		self:SetPropagateKeyboardInput(false)
+		self:SetScript("OnKeyDown", function(_, key)
+			if KEY_MODS[key] then return end
+			if key ~= "ESCAPE" then
+				local combo = (IsAltKeyDown() and "ALT-" or "") .. (IsControlKeyDown() and "CTRL-" or "")
+					.. (IsShiftKeyDown() and "SHIFT-" or "") .. key
+				ns.db[dbKey] = combo
+				if onSet then onSet(combo) end
+				ns.Print((what or label:lower()) .. " set to " .. combo .. ".")
+			end
+			Stop()
+		end)
+	end)
+	clear:SetScript("OnClick", function() ns.db[dbKey] = nil; if onSet then onSet(nil) end; keyBtn:Sync() end)
+	controls[#controls + 1] = keyBtn
+	capturers[#capturers + 1] = keyBtn
+	return keyBtn, 40
+end
+
 -- Other modules add their own options page: ns.optionPages[#ns.optionPages + 1] = function(UI) local p = UI.NewPage(...) ... end
 -- Widgets return (widget, height); add the height with p:Add(h). CONTENT_W is the usable width.
 ns.optionPages = ns.optionPages or {}
-ns.UI.NewPage, ns.UI.DBToggle, ns.UI.Toggle, ns.UI.Slider, ns.UI.Cycle, ns.UI.Section = NewPage, DBToggle, Toggle, Slider, Cycle, Section
+ns.UI.NewPage, ns.UI.DBToggle, ns.UI.Toggle, ns.UI.Slider, ns.UI.Cycle, ns.UI.Section, ns.UI.KeyButton = NewPage, DBToggle, Toggle, Slider, Cycle, Section, KeyButton
 ns.UI.CONTENT_W = CONTENT_W
 
 local function BuildRF()
@@ -358,48 +405,7 @@ local function BuildKey()
 	p:Add(select(2, DBToggle(p, 0, p.y, W, "pbEnabled", "Buff the group with one key", nil,
 		function() ns.ApplyPartyBuffKey() end)) + 10)
 
-	-- key binder
-	local kl = Font(p, 14, C.text)
-	kl:SetPoint("TOPLEFT", 0, p.y - 5)
-	kl:SetText("Key")
-	local clear = Button(p, "Clear", 70, 26)
-	clear:SetPoint("TOPRIGHT", p, "TOPRIGHT", 0, p.y)
-	local keyBtn = Button(p, "", 190, 26, true)
-	keyBtn:SetPoint("RIGHT", clear, "LEFT", -8, 0)
-	local MODS = { LSHIFT = 1, RSHIFT = 1, LCTRL = 1, RCTRL = 1, LALT = 1, RALT = 1, LMETA = 1, RMETA = 1 }
-	keyBtn.Sync = function(self)
-		if self.capturing then return end
-		self:SetLabel(ns.db.pbKey or "Click to set")
-	end
-	local function Stop()
-		keyBtn.capturing = false
-		keyBtn:EnableKeyboard(false)
-		keyBtn:SetScript("OnKeyDown", nil)
-		keyBtn:Sync()
-	end
-	keyBtn.Stop = Stop
-	keyBtn:SetScript("OnClick", function(self)
-		if InCombatLockdown() then ns.Print("leave combat first.") return end
-		self.capturing = true
-		self:SetLabel("Press a key  (Esc cancels)")
-		self:EnableKeyboard(true)
-		self:SetPropagateKeyboardInput(false)
-		self:SetScript("OnKeyDown", function(_, key)
-			if MODS[key] then return end
-			if key ~= "ESCAPE" then
-				local combo = (IsAltKeyDown() and "ALT-" or "") .. (IsControlKeyDown() and "CTRL-" or "")
-					.. (IsShiftKeyDown() and "SHIFT-" or "") .. key
-				ns.db.pbKey = combo
-				ns.ApplyPartyBuffKey()
-				ns.Print("buff key set to " .. combo .. ".")
-			end
-			Stop()
-		end)
-	end)
-	clear:SetScript("OnClick", function() ns.db.pbKey = nil; ns.ApplyPartyBuffKey(); keyBtn:Sync() end)
-	controls[#controls + 1] = keyBtn
-	win.keyBtn = keyBtn
-	p:Add(40)
+	p:Add(select(2, KeyButton(p, p.y, "Key", "pbKey", function() ns.ApplyPartyBuffKey() end, "buff key")))
 
 	p:Add(select(2, Cycle(p, p.y, "Assignments", ns.SOURCES,
 		function() return ns.db.pbSource end,
@@ -588,7 +594,7 @@ local function Build()
 		Select(math.min(ns.db.optionsPage or 1, #pages))
 	end)
 	win:SetScript("OnHide", function()
-		if win.keyBtn and win.keyBtn.capturing then win.keyBtn.Stop() end
+		for _, b in ipairs(capturers) do if b.capturing then b.Stop() end end
 		if ns.unlocked and not InCombatLockdown() then ns.ToggleMove() end
 	end)
 end
