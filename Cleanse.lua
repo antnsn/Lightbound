@@ -59,7 +59,9 @@ local function PickSpell()
 	return changed
 end
 
-local function Mode() return ns.db.clMode == "List" and "List" or "Grid" end
+local wantMode = function() return ns.db.clMode == "List" and "List" or "Grid" end
+local laidOut -- the mode the frames were last laid out in; Update paints that one until Layout can run again
+local function Mode() return laidOut or wantMode() end
 local function Rows() return math.max(1, math.min(MAX_ROWS, ns.db.clRows or 5)) end
 local function PerRow() return math.max(1, math.min(10, ns.db.clPerRow or 5)) end
 local function CellSize() return math.max(14, math.min(40, ns.db.clCell or 22)) end
@@ -344,6 +346,7 @@ function M:Layout()
 	if not frame then return end
 	if InCombatLockdown() then layoutDirty = true return end
 	layoutDirty = false
+	laidOut = wantMode()
 	local grid = Mode() == "Grid"
 	local placeholder = ns.unlocked
 	-- list rows
@@ -602,7 +605,7 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(UI.Section(p, p.y, "Layout") + 2)
 	p:Add(select(2, UI.Cycle(p, p.y, "Grid or list", { "Grid", "List" },
 		function() return ns.db.clMode == "List" and "List" or "Grid" end,
-		function(v) ns.db.clMode = v end,
+		function(v) ns.db.clMode = v; if InCombatLockdown() then ns.Print("cleanse view changes after combat.") end end,
 		function() return ns.db.clMode == "List" and "one row per afflicted unit" or "one cell per group member" end)) + 2)
 	p:Add(select(2, UI.Slider(p, p.y, "Grid: cells per row", "clPerRow", 1, 10, 1, "")))
 	p:Add(select(2, UI.Slider(p, p.y, "Grid: cell size", "clCell", 14, 40, 1, " px")))
