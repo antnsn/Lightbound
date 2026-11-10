@@ -138,9 +138,15 @@ local function Prune()
 	for i = #requests, 1, -1 do
 		local r = requests[i]
 		local done = now - r.at > ttl
-		if not done and r.unit and (not UnitExists(r.unit) or (r.guid and Clean(UnitGUID(r.unit)) ~= r.guid)) then
+		if not done and (not r.unit or not UnitExists(r.unit) or (r.guid and Clean(UnitGUID(r.unit)) ~= r.guid)) then
+			-- lost their unit, or asked from outside the group and have joined since
+			local had = r.unit
 			r.unit = FindUnit(r)
 			if not r.unit and ns.db.rqGroupOnly then done = true end
+			if r.unit and not had then
+				r.class = select(2, UnitClass(r.unit)) or r.class
+				changed = true -- Configure() re-resolves the blessing (tank guard) on click
+			end
 		end
 		if not done and r.unit then
 			local left = ns.PB.TimeLeft(r.unit, r.key)
