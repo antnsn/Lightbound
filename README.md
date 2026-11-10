@@ -51,6 +51,7 @@ More in [screenshots/](screenshots).
 
 **Quality of life**
 - Buys Symbol of Kings and Symbol of Divinity automatically at vendors, and warns when you run low
+- Blessing requests: when a group member whispers "kings pls", "bom" or just "buff", a row with their name appears; click it to bless them. Rows vanish once they're blessed or after a minute
 - Minimap button and addon compartment entry
 - Every frame can be moved (Unlock frames)
 

@@ -20,6 +20,7 @@ Combat.lua
 Cleanse.lua
 Trackers.lua
 Judgements.lua
+Requests.lua
 Options.lua
 RaidWindow.lua
 Minimap.lua

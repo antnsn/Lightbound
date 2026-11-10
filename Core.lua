@@ -34,6 +34,8 @@ ns.defaults = {
 	pbPoint = { "CENTER", "UIParent", "CENTER", 0, -260 },
 	clEnabled = true, clSound = true, clRows = 5, clPets = false, clIgnore = {},
 	clPoint = { "CENTER", "UIParent", "CENTER", 380, 120 },
+	rqEnabled = true, rqSound = true, rqChat = false, rqGroupOnly = true, rqTTL = 60, rqRows = 4,
+	rqPoint = { "CENTER", "UIParent", "CENTER", -380, -60 },
 }
 
 local isSecret = _G.issecretvalue or function() return false end
