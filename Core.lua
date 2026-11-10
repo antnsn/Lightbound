@@ -40,6 +40,9 @@ ns.defaults = {
 	diEnabled = true, diParty = false, diRows = 6, diAnnounce = true, diWarning = true,
 	diPoint = { "CENTER", "UIParent", "CENTER", 300, -60 },
 	rezAnnounce = true, rezWhisper = false,
+	tankGuard = true, tankList = {},
+	tankBless = { WARRIOR = "Might", DRUID = "Might", PALADIN = "Kings", HUNTER = "Kings", ROGUE = "Kings",
+		PRIEST = "Kings", SHAMAN = "Kings", MAGE = "Kings", WARLOCK = "Kings" },
 }
 
 local isSecret = _G.issecretvalue or function() return false end
@@ -202,6 +205,10 @@ SlashCmdList.LIGHTBOUND = function(msg)
 	elseif cmd == "why" then
 		if ns.ExplainPartyBuff then ns.ExplainPartyBuff() end
 		return
+	elseif cmd == "tank" or cmd == "tanks" then
+		-- names keep their case: split the original message again
+		if ns.ToggleTank then ns.ToggleTank((select(2, strsplit(" ", strtrim(msg or ""), 2)))) end
+		return
 	elseif cmd == "move" then
 		ns.ToggleMove() return
 	elseif cmd == "reset" then
@@ -211,7 +218,7 @@ SlashCmdList.LIGHTBOUND = function(msg)
 		return
 	else
 		Print("/lb opens the options window. Commands: toggle " .. OnOff(db.enabled) .. ", sound " .. OnOff(db.sound) .. ", rfraid " .. OnOff(db.raid)
-			.. ", world " .. OnOff(db.world) .. ", seal " .. OnOff(db.seal) .. ", empty " .. OnOff(db.sealEmptyInCombat) .. ", height <n>, rested " .. OnOff(db.wellRested) .. ", raid (blessings window), minimap " .. OnOff(db.minimap) .. ", ignore <debuff>, why, move, reset")
+			.. ", world " .. OnOff(db.world) .. ", seal " .. OnOff(db.seal) .. ", empty " .. OnOff(db.sealEmptyInCombat) .. ", height <n>, rested " .. OnOff(db.wellRested) .. ", raid (blessings window), minimap " .. OnOff(db.minimap) .. ", ignore <debuff>, tank <name>, why, move, reset")
 		return
 	end
 	Refresh()

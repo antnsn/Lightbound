@@ -85,7 +85,7 @@ function ns.PartyBuffSource()
 end
 
 -- Blessing key for a unit, and whether a Greater blessing may be used for it.
-local function Assignment(unit, class, source)
+local function BaseAssignment(unit, class, source)
 	if source == "Group" then
 		local me, cid = ns.MyName(), ns.PP_CLASS[class]
 		if not cid then return nil end
@@ -101,6 +101,13 @@ local function Assignment(unit, class, source)
 	local key = ns.db.pbAssign[class]
 	if key == "None" then key = nil end
 	return key, true
+end
+
+-- Same, after Tanks.lua had its say (never Salvation on a tank). Third value: a note for /lb why.
+local function Assignment(unit, class, source)
+	local key, greaterOK = BaseAssignment(unit, class, source)
+	if ns.TankAssignment then return ns.TankAssignment(unit, class, key, greaterOK) end
+	return key, greaterOK
 end
 
 -- shared with the raid overview (Overview.lua)
@@ -139,11 +146,12 @@ local function Plan(why)
 			note(unit, "too far away (not visible)")
 		else
 			local _, class = UnitClass(unit)
-			local key, greaterOK = nil, false
-			if class then key, greaterOK = Assignment(unit, class, source) end
+			local key, greaterOK, tankNote = nil, false, nil
+			if class then key, greaterOK, tankNote = Assignment(unit, class, source) end
 			if not key then
-				note(unit, "no blessing assigned for " .. tostring(class))
+				note(unit, tankNote or ("no blessing assigned for " .. tostring(class)))
 			else
+				if tankNote then note(unit, tankNote) end
 				local spell = "Blessing of " .. key
 				local greater = "Greater Blessing of " .. key
 				local useGreater = db.pbGreater and raid and greaterOK and haveSymbol and SpellKnown(greater)

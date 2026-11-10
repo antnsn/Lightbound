@@ -23,6 +23,7 @@ Judgements.lua
 Requests.lua
 Cooldowns.lua
 Announce.lua
+Tanks.lua
 Options.lua
 RaidWindow.lua
 Minimap.lua
