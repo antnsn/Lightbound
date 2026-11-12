@@ -2,6 +2,8 @@
 --  * Well-Rested (Cozy Sleeping Bag, spell 429959)
 --  * Well Fed (food buff; on Forever it also boosts experience). Also says when it is gone.
 -- Each timer has its settings under its own prefix in LightboundDB (wellRested*, wellFed*).
+-- With <key>Keep on, a missing buff is followed too: a "Buff has run out" card stays up and you get one
+-- rebuff warning (out of combat, while alive) until you have the buff again.
 local _, ns = ...
 
 local function FormatTime(s)
@@ -15,6 +17,8 @@ local function MakeTimer(cfg)
 	local key = cfg.key -- "wellRested" / "wellFed"
 	local iconFrame, iconTex, timeText, pulse
 	local expires, warned, buffIcon, had = nil, false, nil, false
+	local missing, reminded = false, false -- buff known to be gone / rebuff warning already given
+	local quietUntil = 0 -- right after login or zoning the aura list may not be filled in yet
 
 	local function Names()
 		local n = { cfg.name }
@@ -36,36 +40,60 @@ local function MakeTimer(cfg)
 		Notify(("%s: %d min left"):format(cfg.label, mins))
 	end
 
+	local mode -- what the icon shows: "countdown", "gone" or nil (hidden)
+
+	local function SetMode(m)
+		if m == mode then return end
+		mode = m
+		if m then
+			iconFrame:Show()
+			if not pulse:IsPlaying() then pulse:Play() end
+		else
+			pulse:Stop(); iconFrame:Hide()
+		end
+	end
+
+	local function Following() return ns.db[key] and ns.db[key .. "Keep"] end
+
+	local function Remind()
+		if reminded or not missing or not Following() or GetTime() < quietUntil then return end
+		if InCombatLockdown() or UnitIsDeadOrGhost("player") then return end
+		reminded = true
+		Notify(cfg.label .. " is gone, rebuff")
+	end
+
 	local function UpdateIcon()
 		if not iconFrame then return end
 		local db = ns.db
 		iconTex:SetTexture(buffIcon or cfg.icon)
 		if ns.unlocked then
-			pulse:Stop(); iconFrame:SetAlpha(1); iconFrame:Show(); timeText:SetText("5:00")
+			SetMode("unlocked"); timeText:SetText("5:00 left")
 			return
 		end
 		local left = expires and (expires - GetTime())
 		if db[key] and db[key .. "Icon"] and warned and left and left > 0 then
-			timeText:SetText(FormatTime(left))
-			if not iconFrame:IsShown() then iconFrame:Show(); pulse:Play() end
-		elseif iconFrame:IsShown() then
-			pulse:Stop(); iconFrame:Hide()
+			SetMode("countdown"); timeText:SetText(FormatTime(left) .. " left")
+		elseif Following() and missing and not expires and GetTime() >= quietUntil then
+			SetMode("gone"); timeText:SetText("Buff has run out")
+		else
+			SetMode(nil)
 		end
 	end
 
 	local function Check()
 		local db = ns.db
-		if not db[key] or not expires then UpdateIcon() return end
+		if not db[key] or not expires then Remind(); UpdateIcon() return end
 		local left = expires - GetTime()
 		local limit = db[key .. "Minutes"] * 60
 		if left <= 0 then
-			expires, warned = nil, false
+			expires, warned, missing = nil, false, true
 		elseif left > limit + 5 then
 			warned = false -- refreshed (or the limit was raised): arm again
 		elseif not warned then
 			warned = true
 			NotifyLeft(left)
 		end
+		Remind()
 		UpdateIcon()
 	end
 
@@ -75,15 +103,16 @@ local function MakeTimer(cfg)
 		local b
 		for _, n in ipairs(Names()) do b = b or buffs[n] end
 		if b then
-			had = true
+			had, missing, reminded = true, false, false
 			if b.expires and b.expires > 0 then expires = b.expires end
 			if b.icon then buffIcon = b.icon end
 		elseif not hidden then
 			-- gone (in combat the buff may just be left out of the list: keep the last expiry)
-			if had and cfg.sayGone and ns.db[key] and not UnitIsDeadOrGhost("player") then
+			-- (when following, Remind gives the warning instead)
+			if had and cfg.sayGone and ns.db[key] and not ns.db[key .. "Keep"] and not UnitIsDeadOrGhost("player") then
 				Notify(cfg.label .. " is gone")
 			end
-			had, expires, warned = false, nil, false
+			had, expires, warned, missing = false, nil, false, true
 		end
 		Check()
 	end
@@ -92,28 +121,48 @@ local function MakeTimer(cfg)
 		local f = CreateFrame("Frame")
 		for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED" }) do f:RegisterEvent(e) end
 		f:RegisterUnitEvent("UNIT_AURA", "player")
-		f:SetScript("OnEvent", function() M:Update() end)
+		f:RegisterEvent("PLAYER_UNGHOST"); f:RegisterEvent("PLAYER_ALIVE")
+		f:SetScript("OnEvent", function(_, event)
+			if event == "PLAYER_ENTERING_WORLD" then quietUntil = GetTime() + 5 end
+			M:Update()
+		end)
 
 		iconFrame = CreateFrame("Frame", cfg.frameName, UIParent)
-		iconFrame:SetSize(48, 48)
-		iconFrame:SetFrameStrata("HIGH")
+		-- a small card: dark panel, glowing icon on the left, title and status line on the right
+		iconFrame:SetSize(210, 52)
+		iconFrame:SetFrameStrata("LOW")
 		iconFrame:Hide()
-		local border = iconFrame:CreateTexture(nil, "BACKGROUND")
-		border:SetPoint("TOPLEFT", -2, 2); border:SetPoint("BOTTOMRIGHT", 2, -2)
-		border:SetColorTexture(1, 0.75, 0.1, 0.9)
+		local edge = iconFrame:CreateTexture(nil, "BACKGROUND", nil, 0)
+		edge:SetAllPoints(); edge:SetColorTexture(0.25, 0.25, 0.25, 0.8)
+		local bg = iconFrame:CreateTexture(nil, "BACKGROUND", nil, 1)
+		bg:SetPoint("TOPLEFT", 1, -1); bg:SetPoint("BOTTOMRIGHT", -1, 1)
+		bg:SetColorTexture(0.04, 0.04, 0.05, 0.85)
+		local ICON = 38
+		local border = iconFrame:CreateTexture(nil, "BORDER")
+		border:SetSize(ICON + 4, ICON + 4); border:SetPoint("LEFT", 6, 0)
+		border:SetColorTexture(1, 0.78, 0.15, 1)
 		iconTex = iconFrame:CreateTexture(nil, "ARTWORK")
-		iconTex:SetAllPoints(); iconTex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+		iconTex:SetSize(ICON, ICON); iconTex:SetPoint("CENTER", border)
+		iconTex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 		iconTex:SetTexture(cfg.icon)
-		timeText = iconFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-		timeText:SetPoint("TOP", iconFrame, "BOTTOM", 0, -4)
-		timeText:SetTextColor(1, 0.82, 0)
-		local label = iconFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-		label:SetPoint("BOTTOM", iconFrame, "TOP", 0, 4)
+		local glow = iconFrame:CreateTexture(nil, "OVERLAY")
+		glow:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+		glow:SetBlendMode("ADD"); glow:SetVertexColor(1, 0.8, 0.2, 0.9)
+		glow:SetSize(ICON * 1.9, ICON * 1.9); glow:SetPoint("CENTER", border)
+		local label = iconFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+		label:SetPoint("TOPLEFT", border, "TOPRIGHT", 10, -3); label:SetPoint("RIGHT", -8, 0)
+		label:SetJustifyH("LEFT"); label:SetTextColor(1, 0.82, 0)
 		label:SetText(cfg.label)
-		pulse = iconFrame:CreateAnimationGroup()
+		timeText = iconFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		timeText:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -3); timeText:SetPoint("RIGHT", -8, 0)
+		timeText:SetJustifyH("LEFT"); timeText:SetTextColor(0.85, 0.85, 0.85)
+		-- the glow breathes while the card is up: fades and swells a little, then back
+		pulse = glow:CreateAnimationGroup()
 		pulse:SetLooping("BOUNCE")
 		local fade = pulse:CreateAnimation("Alpha")
-		fade:SetFromAlpha(1); fade:SetToAlpha(0.45); fade:SetDuration(0.8)
+		fade:SetFromAlpha(1); fade:SetToAlpha(0.2); fade:SetDuration(1.1); fade:SetSmoothing("IN_OUT")
+		local swell = pulse:CreateAnimation("Scale")
+		swell:SetScale(1.12, 1.12); swell:SetDuration(1.1); swell:SetSmoothing("IN_OUT")
 		ns.MakeMovable(iconFrame, cfg.point)
 		ns.ApplyPoint(iconFrame, cfg.point)
 		local acc = 0
@@ -122,6 +171,7 @@ local function MakeTimer(cfg)
 			if acc >= 1 then acc = 0; Check() end
 		end)
 		C_Timer.NewTicker(5, Check)
+		quietUntil = GetTime() + 5
 		M:Update()
 	end
 
@@ -133,6 +183,9 @@ local rested = MakeTimer({ key = "wellRested", name = "Well-Rested", spellID = 4
 	label = "Well-Rested", point = "wrPoint", frameName = "LightboundWellRestedFrame" })
 local fed = MakeTimer({ key = "wellFed", name = "Well Fed", icon = 136000, sayGone = true,
 	label = "Well Fed", point = "wfPoint", frameName = "LightboundWellFedFrame" })
+
+-- Options toggles call this so a change shows at once
+function ns.UpdateBuffTimers() rested:Update(); fed:Update() end
 
 -- Test hooks for the options window
 function ns.TestWellRested() rested.Test() end

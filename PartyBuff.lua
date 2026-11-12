@@ -1,13 +1,12 @@
 -- One key that buffs the group: each press (out of combat) casts the next needed buff.
 -- Order: Righteous Fury on yourself (when the RF warning applies), then the assigned blessing
 -- on the next party/raid member, yourself included, who is missing it or close to losing it.
--- Assignments come from /lb (per class) or from the group assignments (/lb raid).
+-- Assignments always come from your row in the Blessings window (/lb blessings), like PallyPower.
 -- The key is an override binding on a secure button.
 local _, ns = ...
 
 ns.CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
 ns.CHOICES = { "None", "Might", "Wisdom", "Kings", "Salvation", "Light", "Sanctuary" }
-ns.SOURCES = { "Auto", "Own", "Group" }
 local DURATION, GREATER_DURATION = 300, 900 -- normal 5 min, Greater 15 min
 local SYMBOL_OF_KINGS = 21177
 local BUTTON = "LightboundPartyBuffButton"
@@ -77,37 +76,27 @@ local function Units()
 end
 
 -- Group assignments (Group.lua; PallyPower-compatible) ------------------------------
--- "Own" or "Group", from the setting. Auto picks Group only in a raid where you have group
--- assignments; solo and in a party your class list and aura choice win.
-function ns.PartyBuffSource()
-	local s = ns.db.pbSource
-	if s == "Group" then return "Group" end
-	if s == "Auto" and ns.HasAssignments and ns.HasAssignments() and IsInRaid() then return "Group" end
-	return "Own"
-end
+-- The Blessings window is the only source: your row there is what the key casts, solo, in a
+-- party and in a raid. (The old own class list was copied into your row once, see Group.lua.)
+-- Kept as a function for the callers that still ask.
+function ns.PartyBuffSource() return "Group" end
 
 -- Blessing key for a unit, and whether a Greater blessing may be used for it.
-local function BaseAssignment(unit, class, source)
-	if source == "Group" then
-		local me, cid = ns.MyName(), ns.PP_CLASS[class]
-		if not cid then return nil end
-		local tname = GetUnitName and GetUnitName(unit, true) or UnitName(unit)
-		local idx = ns.GetNormalAssign(me, cid, tname or "") or ns.GetNormalAssign(me, cid, UnitName(unit) or "")
-		if idx and ns.PP_SPELL[idx] then return ns.PP_SPELL[idx], false end
-		idx = ns.GetAssign(me, cid)
-		if ns.PP_SPELL[idx] then return ns.PP_SPELL[idx], true end
-		-- In a raid "none" means another paladin covers that class. In a party there is
-		-- nobody else to cover it, so use your own class choice instead.
-		if IsInRaid() then return nil end
-	end
-	local key = ns.db.pbAssign[class]
-	if key == "None" then key = nil end
-	return key, true
+-- An empty cell means nothing from you: another paladin covers that class, or nobody does.
+local function BaseAssignment(unit, class)
+	local me, cid = ns.MyName(), ns.PP_CLASS[class]
+	if not cid then return nil end
+	local tname = GetUnitName and GetUnitName(unit, true) or UnitName(unit)
+	local idx = ns.GetNormalAssign(me, cid, tname or "") or ns.GetNormalAssign(me, cid, UnitName(unit) or "")
+	if idx and ns.PP_SPELL[idx] then return ns.PP_SPELL[idx], false end
+	idx = ns.GetAssign(me, cid)
+	if ns.PP_SPELL[idx] then return ns.PP_SPELL[idx], true end
+	return nil
 end
 
 -- Same, after Tanks.lua had its say (never Salvation on a tank). Third value: a note for /lb why.
 local function Assignment(unit, class, source)
-	local key, greaterOK = BaseAssignment(unit, class, source)
+	local key, greaterOK = BaseAssignment(unit, class)
 	if ns.TankAssignment then return ns.TankAssignment(unit, class, key, greaterOK) end
 	return key, greaterOK
 end
@@ -116,8 +105,11 @@ end
 ns.PB = { Units = Units, TimeLeft = TimeLeft, InRange = InRange, SpellKnown = SpellKnown, Assignment = Assignment,
 	recent = recent, DURATION = DURATION, GREATER_DURATION = GREATER_DURATION, SYMBOL = SYMBOL_OF_KINGS }
 
+local unlearned -- a blessing from your row that Plan skipped because you don't know it yet
+
 -- Pick the next unit + blessing. Returns planned table or nil, plus a reason string.
 local function Plan(why)
+	unlearned = nil
 	local function note(unit, text)
 		if why then why[#why + 1] = (UnitName(unit) or unit) .. " (" .. unit .. "): " .. text end
 	end
@@ -136,7 +128,7 @@ local function Plan(why)
 	local source = ns.PartyBuffSource()
 	local raid = IsInRaid()
 	local haveSymbol = (C_Item and C_Item.GetItemCount and C_Item.GetItemCount(SYMBOL_OF_KINGS) or GetItemCount(SYMBOL_OF_KINGS) or 0) > 0
-	if why then why[#why + 1] = "source: " .. source .. (raid and ", raid" or "") end
+	if why then why[#why + 1] = "from your row in the Blessings window" .. (raid and ", raid" or "") end
 	for _, unit in ipairs(Units()) do
 		if not UnitExists(unit) then
 			note(unit, "doesn't exist")
@@ -159,6 +151,7 @@ local function Plan(why)
 				local useGreater = db.pbGreater and raid and greaterOK and haveSymbol and SpellKnown(greater)
 				if useGreater then spell = greater end
 				if not SpellKnown(spell) then
+					unlearned = unlearned or spell
 					note(unit, spell .. " not known")
 				elseif not InRange(spell, unit) then
 					note(unit, "out of range for " .. spell)
@@ -226,8 +219,7 @@ local function UpdateStatus()
 	statusIcon:SetTexture(SpellTexture(planned.spell))
 	local keyText = db.pbKey and (" |cff999999[" .. db.pbKey .. "]|r") or " |cffff3333[no key set]|r"
 	local label = planned.spell:find("^Greater") and ("Greater " .. planned.key) or planned.key
-	local src = ns.PartyBuffSource() == "Group" and " |cff69ccf0(group)|r" or ""
-	statusText:SetText(label .. " > " .. (planned.name or "?") .. src .. keyText)
+	statusText:SetText(label .. " > " .. (planned.name or "?") .. keyText)
 	status:Show()
 end
 
@@ -260,12 +252,15 @@ function M:Init()
 		if InCombatLockdown() then return end
 		Configure()
 		pending = planned
-		if not planned and ns.db.pbEnabled then ns.Print("everyone in range is buffed.") end
+		if not planned and ns.db.pbEnabled then
+			ns.Print(unlearned and (unlearned .. " is in your row but not learned yet: change it in /lb blessings.")
+				or "everyone in range is buffed.")
+		end
 	end)
 
 	status = CreateFrame("Frame", "LightboundPartyBuffFrame", UIParent)
 	status:SetSize(280, 28)
-	status:SetFrameStrata("MEDIUM")
+	status:SetFrameStrata("LOW")
 	status:Hide()
 	local bg = status:CreateTexture(nil, "BACKGROUND")
 	bg:SetAllPoints(); bg:SetColorTexture(0, 0, 0, 0.55)

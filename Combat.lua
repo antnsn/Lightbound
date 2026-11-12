@@ -12,6 +12,8 @@ local function Clean(v) if v == nil or isSecret(v) then return nil end return v 
 
 local EXORCISM_TYPES = { Undead = true, Demon = true, Untoter = true, ["Dämon"] = true, ["Mort-vivant"] = true, ["Démon"] = true }
 local JUDGEMENT_TIME = 10 -- fallback length when the debuff can't be read
+local LASTING = { ["Seal of Wisdom"] = true, ["Seal of Light"] = true, ["Seal of the Crusader"] = true,
+	["Seal of Justice"] = true } -- seals whose Judgement stays on the target as a debuff
 
 local procFrame, procIcons, judgeFrame
 local shown = {}        -- spell -> true while its proc icon is up (for the sound)
@@ -121,6 +123,39 @@ local function ReadJudgement()
 	return nil, nil, nil, unreadable
 end
 
+-- Judgements per mob, by GUID, so swapping back finds the one you left. In combat the GUID can
+-- be a secret value; then only the current target is followed (a swap starts over).
+local judged = {}
+local function TargetKey() return Clean(UnitGUID("target")) end
+local function Remember(j)
+	local key = TargetKey()
+	local now = GetTime()
+	for k, v in pairs(judged) do if now - v.at >= JUDGEMENT_TIME then judged[k] = nil end end
+	if key then judged[key] = j end
+end
+
+-- your spell hit something hostile (heals, seals, blessings and auras don't count)
+local HELPFUL = { "^Seal of", "^Blessing of", "^Greater Blessing of", " Aura$", "^Righteous Fury$",
+	"^Holy Light$", "^Flash of Light$", "^Lay on Hands$", "^Divine", "^Cleanse$", "^Purify$" }
+local function Harmful(spellID, name)
+	local ok, h = pcall(function()
+		if C_Spell and C_Spell.IsSpellHarmful then return C_Spell.IsSpellHarmful(spellID) end
+		if IsHarmfulSpell then return IsHarmfulSpell(name) end
+	end)
+	if ok and h ~= nil and not isSecret(h) then return h and true or false end
+	for _, pat in ipairs(HELPFUL) do if name:find(pat) then return false end end
+	return true
+end
+
+-- your Judgement on the current target as you last saw it go out: name, seconds left; or nil.
+-- Shared with the Judgement assignments (Judgements.lua) for when the debuffs are hidden.
+function ns.LastJudgement()
+	if not lastJudge then return nil end
+	local l = JUDGEMENT_TIME - (GetTime() - lastJudge.at)
+	if l <= 0 then return nil end
+	return lastJudge.name, l
+end
+
 local function UpdateJudgement()
 	local db = ns.db
 	local f = judgeFrame
@@ -187,7 +222,7 @@ end
 function M:Init()
 	procFrame = CreateFrame("Frame", "LightboundProcFrame", UIParent)
 	procFrame:SetSize(112, 52)
-	procFrame:SetFrameStrata("HIGH")
+	procFrame:SetFrameStrata("LOW")
 	procFrame:Hide()
 	procIcons = { MakeProcIcon(procFrame, 1), MakeProcIcon(procFrame, 2) }
 	ns.MakeMovable(procFrame, "prPoint")
@@ -195,7 +230,7 @@ function M:Init()
 
 	judgeFrame = CreateFrame("Frame", "LightboundJudgementFrame", UIParent)
 	judgeFrame:SetSize(36, 36)
-	judgeFrame:SetFrameStrata("MEDIUM")
+	judgeFrame:SetFrameStrata("LOW")
 	judgeFrame:Hide()
 	judgeFrame.icon = judgeFrame:CreateTexture(nil, "ARTWORK")
 	judgeFrame.icon:SetAllPoints(); judgeFrame.icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -215,18 +250,46 @@ function M:Init()
 	ev:RegisterEvent("SPELL_UPDATE_USABLE")
 	ev:RegisterUnitEvent("UNIT_AURA", "target")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-	ev:SetScript("OnEvent", function(_, event, _, _, spellID)
+	ev:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
+	-- the server confirms a cast a moment after you press it; cast and swap target quickly and
+	-- the confirmation lands after the swap. Only count casts sent at the current target.
+	-- The cast's target name (from UNIT_SPELLCAST_SENT) must also be your target: a mouseover or
+	-- focus macro hits someone else. With `strict`, a cast without a readable target (Consecration,
+	-- or a hidden name) doesn't count either; without it (Judgement, always on a target) it does.
+	local sentAt, targetAt, sentTo = 0, 0, nil
+	local function AtTarget(strict)
+		if sentAt < targetAt then return false end
+		local mine = Clean(UnitName("target"))
+		if not sentTo or sentTo == "" or not mine then return not strict end
+		return sentTo == mine or Ambiguate(sentTo, "none") == mine
+	end
+	ev:SetScript("OnEvent", function(_, event, _, a2, a3, a4)
 		if event == "PLAYER_TARGET_CHANGED" then
-			lastJudge = nil
-		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-			local name = ns.SpellName(spellID)
+			targetAt = GetTime()
+			-- back on a mob you judged: pick its Judgement up again (when its GUID can be read)
+			local key = TargetKey()
+			lastJudge = key and judged[key] or nil
+		elseif event == "UNIT_SPELLCAST_SENT" then
+			sentAt, sentTo = GetTime(), Clean(a2)
+		elseif event == "UNIT_SPELLCAST_SUCCEEDED" and HostileTarget() and AtTarget(false) then
+			local name = ns.SpellName(a3)
 			if name == "Judgement" then
-				-- remember which Judgement went out, in case the debuff is hidden in combat
-				local buffs = ns.ReadPlayerBuffs()
-				local seal
-				for bname in pairs(buffs) do if bname:find("^Seal of") then seal = bname end end
-				local jname = seal and seal:gsub("^Seal of ", "Judgement of ") or "Judgement"
-				lastJudge = { name = jname, icon = seal and Texture(seal), at = GetTime() }
+				-- remember which Judgement went out, in case the debuff is hidden in combat. The seal
+				-- comes from the seal timer, which still knows it when combat hides your buffs.
+				-- Only these seals leave a Judgement on the target; the others just hit once.
+				local seal = ns.ActiveSeal and ns.ActiveSeal()
+				if seal and LASTING[seal] then
+					lastJudge = { name = (seal:gsub("^Seal of ", "Judgement of ")), icon = Texture(seal), at = GetTime() }
+				else
+					lastJudge = nil
+				end
+				Remember(lastJudge)
+			elseif lastJudge and name and AtTarget(true) and Harmful(a3, name)
+				and GetTime() - lastJudge.at < JUDGEMENT_TIME then
+				-- on Forever your spells on the target restart its Judgement. A cast that misses or
+				-- is resisted counts too (proving a hit needs the combat log); this guess only
+				-- matters while the target's debuffs are hidden.
+				lastJudge.at = GetTime()
 			end
 		end
 		M:Update()

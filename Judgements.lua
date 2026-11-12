@@ -21,12 +21,10 @@ local SEAL = { Wisdom = "Seal of Wisdom", Light = "Seal of Light", Crusader = "S
 -- icons for seals you may not know (only spells you know have a texture by name)
 local FALLBACK_ICON = { Wisdom = 135960, Light = 135917, Crusader = 135924, Justice = 135971 }
 local JUDGE_ICON = 135959
-local JUDGEMENT_TIME = 10 -- how long your own Judgement is assumed up when the debuff list is hidden
 local SOUND_GAP = 10
 
 local frame, icons = nil, {}
-local lastSound, lastCast = 0, 0
-local lastCastName -- "Judgement of X" from the seal that was up when you last judged (nil when unreadable)
+local lastSound = 0
 local plan, planMine, planAt = nil, nil, 0 -- cached Plan(); GroupPaladins() rescans talents, so not every tick
 
 local function Texture(spell)
@@ -254,8 +252,10 @@ function M:Update()
 	if unknown then Show(list, "unknown", nil, mine) return end
 	-- your own Judgement can be left out of a partly hidden list: trust your last cast for a while
 	-- (only when the seal you judged with matches your assignment)
-	if mine and hidden and not found[DEBUFF[mine]] and lastCastName == DEBUFF[mine] and GetTime() - lastCast < JUDGEMENT_TIME then
-		found[DEBUFF[mine]] = JUDGEMENT_TIME - (GetTime() - lastCast)
+	-- (Combat.lua follows it per mob, restarted by your spells on it)
+	if mine and hidden and not found[DEBUFF[mine]] and ns.LastJudgement then
+		local name, left = ns.LastJudgement()
+		if name == DEBUFF[mine] then found[name] = left end
 	end
 	Show(list, "known", found, mine)
 	if mine and not found[DEBUFF[mine]] and db.jaSound and GetTime() - lastSound > SOUND_GAP then
@@ -267,7 +267,7 @@ end
 function M:Init()
 	frame = CreateFrame("Frame", "LightboundJudgeAssignFrame", UIParent)
 	frame:SetSize(72, 32)
-	frame:SetFrameStrata("MEDIUM")
+	frame:SetFrameStrata("LOW")
 	frame:Hide()
 	ns.MakeMovable(frame, "jaPoint")
 	ns.ApplyPoint(frame, "jaPoint")
@@ -278,20 +278,8 @@ function M:Init()
 	ev:RegisterEvent("PLAYER_REGEN_DISABLED")
 	ev:RegisterEvent("GROUP_ROSTER_UPDATE")
 	ev:RegisterUnitEvent("UNIT_AURA", "target")
-	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-	ev:SetScript("OnEvent", function(_, event, _, _, spellID)
-		if event == "UNIT_SPELLCAST_SUCCEEDED" then
-			if ns.SpellName(spellID) == "Judgement" then
-				lastCast = GetTime()
-				-- which Judgement that was: from the seal on you right now (read before the client eats it)
-				local seal
-				local buffs = ns.ReadPlayerBuffs()
-				for bname in pairs(buffs) do if bname:find("^Seal of") then seal = bname end end
-				lastCastName = seal and (seal:gsub("^Seal of ", "Judgement of ")) or nil
-			end
-		elseif event == "PLAYER_TARGET_CHANGED" then
-			lastCast, lastCastName = 0, nil
-		elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_REGEN_DISABLED" then
+	ev:SetScript("OnEvent", function(_, event)
+		if event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_REGEN_DISABLED" then
 			planAt = 0
 		end
 		M:Update()
@@ -315,6 +303,6 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 		function(v) ns.SetJudgeAssign(ns.MyName(), v) end)) + 2)
 	local n = UI.Font(p, 12, UI.C.dim)
 	n:SetPoint("TOPLEFT", 0, p.y); n:SetPoint("RIGHT", p, "RIGHT")
-	n:SetText("Assign the other paladins in the raid blessings window (/lb raid), Judgement column. Only paladins running Lightbound see these; PallyPower doesn't know about Judgements.")
+	n:SetText("Assign the other paladins in the Blessings window (/lb blessings), Judgement column. Only paladins running Lightbound see these; PallyPower doesn't know about Judgements.")
 	p:Add(40)
 end

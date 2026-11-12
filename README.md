@@ -26,17 +26,16 @@ More in [screenshots/](screenshots).
 ## Features
 
 **Buffing**
-- **One buff key.** Out of combat, each press casts the next thing needed: Righteous Fury, then your aura, then the assigned blessing on the next party or raid member who is missing it or about to lose it.
+- **One buff key.** Out of combat, each press casts the next thing needed: Righteous Fury, then your aura, then the blessing from your row in the Blessings window on the next party or raid member who is missing it or about to lose it. Solo, in a party and in a raid alike.
   - Greater Blessings are used in raids when you have Symbol of Kings.
   - It checks range and refreshes blessings before they run out.
-- **Raid blessings window (`/lb raid`).** A grid of paladins against classes, plus aura and cooldowns.
-  - Click a cell to change the blessing, or shift-click it to set blessings for individual players.
+- **Blessings window (`/lb blessings`, also `/lb raid`).** The one place that decides who gets what, like PallyPower: a grid of paladins against classes, plus aura, Judgement and cooldowns.
+  - Click a cell to change the blessing, or shift-click it to set blessings for individual players. Blessings you haven't learned yet show red.
   - Auto-assign, Clear and Refresh.
   - The leader and assists can edit every row. Everyone else can edit their own row, or anyone who opts in.
   - Shows Lay on Hands and Divine Intervention cooldowns, Symbol of Kings counts, and Improved Might/Wisdom talents, which auto-assign takes into account.
 - **Raid overview.** One row per class you bless, showing how many are missing it and the shortest time left. Click a row to bless that class.
-- **Own class choices.** A blessing per class for when you're not in a raid.
-- **Tank guard.** Never Blessing of Salvation on a tank: marked tanks, raid main tanks and assists get another blessing instead (Might for warriors and druids, Kings otherwise, per class under **Tanks**). The tank list is shared between Lightbound paladins.
+- **Tank guard.** Never Blessing of Salvation on a tank: marked tanks, raid main tanks and assists get another blessing instead (Might for warriors and druids, Kings otherwise, per class, set on the line under your row in the Blessings window). The tank list is shared between Lightbound paladins.
 
 **Warnings and trackers**
 - Righteous Fury missing while grouped (party, raid, open world)
@@ -46,7 +45,7 @@ More in [screenshots/](screenshots).
 - Hammer of Wrath (target below 20%) and Exorcism (undead/demon) alerts
 - Your Judgement on the target, plus a reminder when it's missing in combat
 - Trackers row: Reckoning stacks (gold at 4), Consecration countdown, Holy Shock cooldown, and a Judgement of Wisdom reminder when your mana runs low
-- Judgement assignments: who keeps Wisdom, Light, Crusader or Justice on the boss, set in the raid window's Judgement column and shared with the other Lightbound paladins. In combat, an icon per assigned Judgement shows whether it's on your target, with a sound when yours is missing
+- Judgement assignments: who keeps Wisdom, Light, Crusader or Justice on the boss, set in the Blessings window's Judgement column and shared with the other Lightbound paladins. In combat, an icon per assigned Judgement shows whether it's on your target, with a sound when yours is missing
 - Well-Rested and Well Fed: a warning before they run out, and when Well Fed is gone
 - Cleanse: a Decursive-style grid of the group (and pets), one cell per member, coloured by the Poison, Disease or Magic debuff you can remove; click to cleanse. The cells follow joins, leaves and raid shuffles even in combat. A list view is the alternative. Dims out-of-range players, plays a sound, has an ignore list, and a key that cleanses whatever is under your mouse (a cell, the list, any raid frame) or else your target, in combat too
 - Paladin cooldowns: every paladin's Blessing of Protection, Freedom and Sacrifice, Divine Shield and Divine Protection (plus your own Forbearance), shared between Lightbound users
@@ -72,10 +71,11 @@ More in [screenshots/](screenshots).
 | Command | What it does |
 | --- | --- |
 | `/lb` | Options window |
-| `/lb raid` | Raid blessings window |
+| `/lb blessings` (`/lb raid`) | Blessings window |
 | `/lb why` | Explains the buff key's choice for every group member |
 | `/lb tank <name>` | Marks or unmarks a tank (no name: lists the tanks) |
-| `/lb move` / `/lb reset` | Unlock frames (drag to move, scroll to resize) / reset positions and sizes |
+| `/lb move` / `/lb reset` | Unlock frames (drag to move, scroll to resize; they snap to a grid, Shift to place freely) / reset positions and sizes |
+| `/lb grid [size]` | Toggle grid snapping, or set the grid size (also on the bar shown while unlocked) |
 | `/lb ignore <debuff>` | Add or remove a debuff from the cleanse list's ignore list; `/lb ignore` shows it |
 | `/lb minimap`, `/lb fed`, `/lb rested`, `/lb rfraid` | Toggle the minimap button, the Well Fed warning, the Well-Rested warning, or Righteous Fury warnings in raids |
 

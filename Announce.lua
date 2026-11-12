@@ -217,7 +217,7 @@ end
 function M:Init()
 	frame = CreateFrame("Frame", "LightboundDIFrame", UIParent, "BackdropTemplate")
 	frame:SetSize(ROW_W, 100)
-	frame:SetFrameStrata("MEDIUM")
+	frame:SetFrameStrata("LOW")
 	frame:Hide()
 	if ns.UI and ns.UI.Box then
 		ns.UI.Box(frame, 0.85)

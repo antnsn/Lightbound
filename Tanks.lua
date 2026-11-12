@@ -17,7 +17,7 @@ ns.TANK_CHOICES = { "Might", "Wisdom", "Kings", "Light", "Sanctuary", "None" }
 local ROW_H, LIST_H, MSG_MAX = 24, 150, 220
 
 local page, listScroll, listChild, hint
-local rows, classButtons = {}, {}
+local rows = {}
 local scan = { at = 0, units = {}, class = {} } -- tank detection, rebuilt at most once a second
 
 -- Names: realm dropped for your own realm, like Group.lua
@@ -180,16 +180,19 @@ function ns.ToggleTank(arg)
 		.. ((IsInGroup() and not CanShare()) and " Only the leader or an assist shares the list." or ""))
 end
 
--- Options page ------------------------------------------------------------------------
-local function SyncClasses()
-	local UI = ns.UI
-	for _, b in ipairs(classButtons) do
-		local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[b.class]
-		local cname = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[b.class]) or b.class
-		b:SetLabel((cc and UI.Hex({ cc.r, cc.g, cc.b }) or UI.Hex(UI.C.text)) .. cname .. "|r  "
-			.. UI.Hex(UI.C.accent) .. ((ns.db.tankBless or {})[b.class] or "Kings") .. "|r")
-	end
+-- What a tank of `class` gets from you instead of Salvation ("None" skips them), and a step
+-- through the choices. Set in the Blessings window, on the line under your row.
+function ns.TankBless(class) return (ns.db.tankBless or {})[class] or "Kings" end
+function ns.StepTankBless(class, dir)
+	local list, cur, idx = ns.TANK_CHOICES, ns.TankBless(class), 1
+	for j, v in ipairs(list) do if v == cur then idx = j end end
+	idx = (idx - 1 + dir) % #list + 1
+	ns.db.tankBless = ns.db.tankBless or {}
+	ns.db.tankBless[class] = list[idx]
+	ns.Refresh()
 end
+
+-- Options page ------------------------------------------------------------------------
 
 local function Row(i)
 	local UI = ns.UI
@@ -277,37 +280,10 @@ end
 ns.optionPages = ns.optionPages or {}
 ns.optionPages[#ns.optionPages + 1] = function(UI)
 	local W = UI.CONTENT_W
-	local p = UI.NewPage("Tanks", "Never Blessing of Salvation on a tank. Marked tanks, raid main tanks and assists get another blessing.")
+	local p = UI.NewPage("Tanks", "Who counts as a tank: marked tanks, the raid's main tanks and assists, and the tank role. What they get instead of Salvation is set in the Blessings window.")
 	page = p
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "tankGuard", "Never Blessing of Salvation on a tank",
-		"Tanks get the blessing below instead, never a Greater one.")) + 6)
-
-	p:Add(UI.Section(p, p.y, "Instead of Salvation") + 4)
-	local colW = math.floor(W / 3)
-	for i, class in ipairs(ns.CLASSES) do
-		local col, row = (i - 1) % 3, math.floor((i - 1) / 3)
-		local b = UI.Button(p, "", colW - 4, 24)
-		b:SetPoint("TOPLEFT", col * colW, p.y - row * 28)
-		b.label:SetFont(UI.FONT, 11, "")
-		b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-		b.class = class
-		b:SetScript("OnClick", function(_, mouse)
-			local list, cur, idx = ns.TANK_CHOICES, (ns.db.tankBless or {})[class] or "Kings", 1
-			for j, v in ipairs(list) do if v == cur then idx = j end end
-			idx = (mouse == "RightButton") and (idx - 2) % #list + 1 or idx % #list + 1
-			ns.db.tankBless = ns.db.tankBless or {}
-			ns.db.tankBless[class] = list[idx]
-			SyncClasses(); ns.Refresh()
-		end)
-		b:HookScript("OnEnter", function(self)
-			GameTooltip:SetOwner(self, "ANCHOR_TOP")
-			GameTooltip:AddLine("Left-click next, right-click previous. None skips tanks of this class.", 1, 1, 1)
-			GameTooltip:Show()
-		end)
-		b:HookScript("OnLeave", function() GameTooltip:Hide() end)
-		classButtons[#classButtons + 1] = b
-	end
-	p:Add(3 * 28 + 6)
+		"Tanks get the blessing on the line under your row in the Blessings window, never a Greater one.")) + 6)
 
 	local y = p.y
 	p:Add(UI.Section(p, y, "Tanks in the group") + 4)
@@ -332,7 +308,7 @@ end
 
 -- Module ---------------------------------------------------------------------------------
 function M:Update()
-	if page and page:IsShown() then SyncClasses(); RefreshList() end
+	if page and page:IsShown() then RefreshList() end
 end
 
 function M:Init()

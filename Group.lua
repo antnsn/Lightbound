@@ -552,6 +552,27 @@ local function Parse(sender, msg)
 end
 
 -- Setup ---------------------------------------------------------------------------
+-- v4.3: the buff key always follows the Blessings window. Your old own class list (Options >
+-- Class blessings, used with Assignments Auto or Own) becomes your row, once, so the key keeps
+-- casting what it did outside raids. Skipped when Assignments was already Group. Written to
+-- Lightbound's own table (never PallyPower's), and not sent: the group gets it on the next sync.
+-- Once per paladin (the saved settings are account-wide), and never over a row you already have.
+local function MigrateClassList()
+	local db = ns.db
+	local me = Me()
+	if type(db.rowFromClassList) ~= "table" then db.rowFromClassList = {} end -- was a single flag
+	if db.rowFromClassList[me] then return end
+	db.rowFromClassList[me] = true
+	if ns.HasAssignments(me) then return end
+	if db.pbSource == "Group" or type(db.pbAssign) ~= "table" then return end
+	db.assign = db.assign or {}
+	local row = {}
+	for cid = 1, NUM_CLASSES do
+		row[cid] = ns.PP_SPELL_ID[db.pbAssign[ns.PP_CLASS_NAME[cid]] or ""] or 0
+	end
+	db.assign[me] = row
+end
+
 local function Migrate()
 	-- one-time copy of your own PallyPower assignments, so removing PallyPower keeps them
 	if ns.db.ppMigrated then return end
@@ -592,6 +613,7 @@ function M:Init()
 			local loaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 			passive = loaded and loaded("PallyPower") and true or false
 			Migrate()
+			MigrateClassList()
 			ScanSelf()
 		elseif event == "CHAT_MSG_ADDON" then
 			if passive or (prefix ~= PREFIX and prefix ~= LB_PREFIX) then return end

@@ -6,14 +6,15 @@ ns.isPaladin = class == "PALADIN"
 
 ns.defaults = {
 	enabled = true, sound = true, raid = true, world = true,
+	snap = true, gridSize = 20, -- unlocked frames snap to a grid around the screen centre
 	rfPoint = { "CENTER", "UIParent", "CENTER", 0, 180 },
 	seal = true, sealEmptyInCombat = true, sealHeight = 220, sealWidth = 22,
 	sealPoint = { "CENTER", "UIParent", "CENTER", -260, -60 },
 	sealDur = {},
-	wellRested = true, wellRestedMinutes = 5, wellRestedSound = true, wellRestedIcon = true,
+	wellRested = true, wellRestedMinutes = 5, wellRestedSound = true, wellRestedIcon = true, wellRestedKeep = false,
 	wrPoint = { "CENTER", "UIParent", "CENTER", 0, 260 },
-	wellFed = true, wellFedMinutes = 3, wellFedSound = true, wellFedIcon = true,
-	wfPoint = { "CENTER", "UIParent", "CENTER", 70, 260 },
+	wellFed = true, wellFedMinutes = 3, wellFedSound = true, wellFedIcon = true, wellFedKeep = false,
+	wfPoint = { "CENTER", "UIParent", "CENTER", 0, 200 },
 	blessEnabled = true, blessOnlyProblems = false, blessWarnMinutes = 1, blessHideResting = true, blessOnlyGrouped = false,
 	blessTrack = { Might = true, Wisdom = false, Kings = true, Salvation = false, Light = false, Sanctuary = false },
 	blPoint = { "CENTER", "UIParent", "CENTER", 0, -200 },
@@ -30,6 +31,7 @@ ns.defaults = {
 	cdEnabled = true, cdOnlyRaid = false, cdShowSelf = true, cdPoint = { "CENTER", "UIParent", "CENTER", -380, -80 },
 	auraWarn = true, auraOnlyGrouped = false, auraStrict = false, auraChoice = "Devotion",
 	auPoint = { "CENTER", "UIParent", "CENTER", 80, 180 },
+	-- pbSource and pbAssign (the old own class list) are only read once by MigrateClassList in Group.lua
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",
 		SHAMAN = "Wisdom", MAGE = "Wisdom", WARLOCK = "Wisdom", DRUID = "Wisdom" },
 	pbPoint = { "CENTER", "UIParent", "CENTER", 0, -260 },
@@ -103,12 +105,10 @@ function ns.MakeMovable(frame, key)
 	frame:SetMovable(true)
 	frame:SetClampedToScreen(true)
 	frame:RegisterForDrag("LeftButton")
-	frame:SetScript("OnDragStart", frame.StartMoving)
-	frame:SetScript("OnDragStop", function(self)
-		self:StopMovingOrSizing()
-		local p, _, rp, x, y = self:GetPoint()
-		ns.db[key] = { p, "UIParent", rp, x, y }
-	end)
+	-- our own drag (not StartMoving) so the frame can lock onto the grid while it moves; the
+	-- frame keeps the anchor point it is saved by (Cleanse stays TOPLEFT so it grows down/right)
+	frame:SetScript("OnDragStart", function(self) ns.BeginDrag(self, key) end)
+	frame:SetScript("OnDragStop", function(self) ns.EndDrag(self, key) end)
 	-- while unlocked, the mouse wheel scales the frame (saved per frame in db.scales)
 	frame:SetScript("OnMouseWheel", function(self, delta)
 		if not ns.unlocked or InCombatLockdown() then return end
@@ -131,6 +131,171 @@ function ns.MakeMovable(frame, key)
 	end)
 	ns.movers[#ns.movers + 1] = { frame = frame, key = key }
 end
+
+-- Grid snapping -----------------------------------------------------------------------
+-- Lines every gridSize (UI units) out from the screen centre, so frames line up with each other
+-- and sit the same distance left and right of the middle. The frame's own anchor point (the
+-- corner or centre its position is saved by) is what snaps. Hold Shift while dropping to skip it.
+local function GridSize() return math.max(4, math.floor(tonumber(ns.db.gridSize) or 20)) end
+
+-- the frame's anchor point (the one its position is saved by), in UIParent units
+local function AnchorXY(frame, point)
+	local l, r, t, b = frame:GetLeft(), frame:GetRight(), frame:GetTop(), frame:GetBottom()
+	if not l then return nil end
+	local s = frame:GetScale() -- parent is UIParent
+	return (point:find("LEFT") and l or point:find("RIGHT") and r or (l + r) / 2) * s,
+		(point:find("TOP") and t or point:find("BOTTOM") and b or (t + b) / 2) * s
+end
+
+local function CursorXY()
+	local x, y = GetCursorPosition()
+	local s = UIParent:GetEffectiveScale()
+	return x / s, y / s
+end
+
+local function Snap(ax, ay)
+	if not ns.db.snap or IsShiftKeyDown() then return ax, ay end
+	local cx, cy = UIParent:GetCenter()
+	local g = GridSize()
+	return cx + math.floor((ax - cx) / g + 0.5) * g, cy + math.floor((ay - cy) / g + 0.5) * g
+end
+
+-- one drag at a time; a separate driver frame so the dragged frame's own OnUpdate stays intact
+local drag = { frame = nil }
+local driver = CreateFrame("Frame")
+driver:Hide()
+local function Place(frame, point, ax, ay)
+	local fs = frame:GetScale() -- SetPoint offsets are in the frame's own scale
+	frame:ClearAllPoints()
+	frame:SetPoint(point, UIParent, "BOTTOMLEFT", ax / fs, ay / fs)
+end
+driver:SetScript("OnUpdate", function()
+	local f = drag.frame
+	if not f then driver:Hide() return end
+	-- the button came up without an OnDragStop (released over another frame): finish here
+	if not IsMouseButtonDown("LeftButton") then ns.EndDrag(f, drag.key) return end
+	local x, y = CursorXY()
+	local ax, ay = Snap(x + drag.ox, y + drag.oy)
+	drag.ax, drag.ay = ax, ay
+	Place(f, drag.point, ax, ay)
+end)
+
+function ns.BeginDrag(frame, key)
+	if not ns.unlocked or InCombatLockdown() then return end
+	local point = (ns.db[key] and ns.db[key][1]) or "CENTER"
+	local ax, ay = AnchorXY(frame, point)
+	if not ax then return end
+	local x, y = CursorXY()
+	drag.frame, drag.key, drag.point = frame, key, point
+	drag.ox, drag.oy, drag.ax, drag.ay = ax - x, ay - y, ax, ay
+	driver:Show()
+end
+
+function ns.EndDrag(frame, key)
+	if drag.frame ~= frame then return end
+	driver:Hide()
+	local fs = frame:GetScale()
+	ns.db[key] = { drag.point, "UIParent", "BOTTOMLEFT", drag.ax / fs, drag.ay / fs }
+	drag.frame = nil
+	ns.ApplyPoint(frame, key)
+end
+
+-- the grid itself, shown while frames are unlocked
+local grid, panel
+local ShowGrid
+
+-- small bar at the top while unlocked: grid size, snap on/off and Lock, so nothing has to be
+-- changed in the options while placing frames. The mouse wheel over it changes the size too.
+local function GridPanel()
+	if panel then return panel end
+	local UI = ns.UI
+	panel = CreateFrame("Frame", "LightboundGridPanel", UIParent, "BackdropTemplate")
+	panel:SetSize(330, 36)
+	panel:SetPoint("TOP", UIParent, "TOP", 0, -12)
+	panel:SetFrameStrata("DIALOG")
+	panel:EnableMouse(true)
+	if UI and UI.Box then UI.Box(panel, 0.92) end
+	local function Btn(text, w)
+		local b = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+		b:SetSize(w, 22); b:SetText(text)
+		return b
+	end
+	local function Resize(delta)
+		ns.db.gridSize = math.max(4, math.min(100, GridSize() + delta))
+		ns.db.snap = true
+		ShowGrid(ns.unlocked)
+	end
+	local minus = Btn("-", 24); minus:SetPoint("LEFT", 10, 0)
+	minus:SetScript("OnClick", function() Resize(IsShiftKeyDown() and -1 or -4) end)
+	panel.size = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	panel.size:SetPoint("LEFT", minus, "RIGHT", 6, 0); panel.size:SetWidth(70)
+	local plus = Btn("+", 24); plus:SetPoint("LEFT", panel.size, "RIGHT", 6, 0)
+	plus:SetScript("OnClick", function() Resize(IsShiftKeyDown() and 1 or 4) end)
+	local snap = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+	snap:SetSize(24, 24); snap:SetPoint("LEFT", plus, "RIGHT", 10, 0)
+	snap:SetScript("OnClick", function(self) ns.db.snap = self:GetChecked() and true or false; ShowGrid(ns.unlocked) end)
+	local snapText = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+	snapText:SetPoint("LEFT", snap, "RIGHT", 2, 0); snapText:SetText("Snap")
+	panel.snap = snap
+	local lock = Btn("Lock", 60); lock:SetPoint("RIGHT", -10, 0)
+	lock:SetScript("OnClick", function() if ns.unlocked then ns.ToggleMove() end end)
+	panel:EnableMouseWheel(true)
+	panel:SetScript("OnMouseWheel", function(_, d) Resize(d > 0 and 4 or -4) end)
+	panel:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+		GameTooltip:AddLine("Grid")
+		GameTooltip:AddLine("- / + or the mouse wheel: grid size (Shift: 1 px steps)", 1, 1, 1)
+		GameTooltip:AddLine("Hold Shift while dragging a frame to place it freely", 1, 1, 1)
+		GameTooltip:Show()
+	end)
+	panel:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	return panel
+end
+
+function ShowGrid(show)
+	if show then
+		local pn = GridPanel()
+		pn.size:SetText(GridSize() .. " px")
+		pn.snap:SetChecked(ns.db.snap and true or false)
+		pn:Show()
+	elseif panel then
+		panel:Hide()
+	end
+	if not show or not ns.db.snap then if grid then grid:Hide() end return end
+	if not grid then
+		grid = CreateFrame("Frame", nil, UIParent)
+		grid:SetAllPoints(UIParent)
+		grid:SetFrameStrata("BACKGROUND")
+		grid.lines = {}
+	end
+	local g = GridSize()
+	local w, h = UIParent:GetWidth(), UIParent:GetHeight()
+	local used = 0
+	local function Line(vertical, offset, centre)
+		used = used + 1
+		local t = grid.lines[used]
+		if not t then t = grid:CreateTexture(nil, "BACKGROUND"); grid.lines[used] = t end
+		t:ClearAllPoints()
+		if centre then t:SetColorTexture(1, 0.82, 0, 0.45) else t:SetColorTexture(1, 1, 1, 0.08) end
+		if vertical then
+			t:SetPoint("TOP", grid, "TOP", offset, 0); t:SetPoint("BOTTOM", grid, "BOTTOM", offset, 0); t:SetWidth(1)
+		else
+			t:SetPoint("LEFT", grid, "LEFT", 0, offset); t:SetPoint("RIGHT", grid, "RIGHT", 0, offset); t:SetHeight(1)
+		end
+		t:Show()
+	end
+	for i = 0, math.floor(w / 2 / g) do
+		Line(true, i * g, i == 0)
+		if i > 0 then Line(true, -i * g) end
+	end
+	for i = 0, math.floor(h / 2 / g) do
+		Line(false, i * g, i == 0)
+		if i > 0 then Line(false, -i * g) end
+	end
+	for i = used + 1, #grid.lines do grid.lines[i]:Hide() end
+	grid:Show()
+end
+ns.ShowGrid = ShowGrid
 
 function ns.ApplyPoint(frame, key)
 	local p = ns.db[key]
@@ -197,6 +362,11 @@ loader:SetScript("OnEvent", function(self, _, name)
 		if ns.db[k] == nil then ns.db[k] = type(v) == "table" and CopyTable(v) or v end
 	end
 	if ns.db.point then ns.db.rfPoint, ns.db.point = ns.db.point, nil end -- v1.0 setting
+	-- v4.3: the buff timers became wide cards; move Well Fed off the old spot next to Well-Rested
+	local wf = ns.db.wfPoint
+	if wf and wf[1] == "CENTER" and wf[3] == "CENTER" and wf[4] == 70 and wf[5] == 260 then
+		ns.db.wfPoint = CopyTable(ns.defaults.wfPoint)
+	end
 	if ns.db.pbSource == "PallyPower" then ns.db.pbSource = "Group" end -- v2.4 setting
 	self:UnregisterEvent("ADDON_LOADED")
 	if not ns.isPaladin then return end
@@ -221,7 +391,9 @@ function ns.ToggleMove()
 	if InCombatLockdown() then Print("leave combat first.") return end
 	ns.unlocked = not ns.unlocked
 	for _, m in ipairs(ns.movers) do m.frame:EnableMouse(ns.unlocked); m.frame:EnableMouseWheel(ns.unlocked) end
-	Print(ns.unlocked and "unlocked: drag the frames, scroll on one to resize it. Lock them again when done." or "locked.")
+	ShowGrid(ns.unlocked)
+	Print(ns.unlocked and ("unlocked: drag the frames, scroll on one to resize it. Lock them again when done."
+		.. (ns.db.snap and " They snap to the grid (hold Shift to place freely)." or "")) or "locked.")
 	Refresh()
 end
 
@@ -262,7 +434,7 @@ SlashCmdList.LIGHTBOUND = function(msg)
 		db.wellRested = not db.wellRested; Print("Well-Rested warning " .. OnOff(db.wellRested))
 	elseif cmd == "fed" then
 		db.wellFed = not db.wellFed; Print("Well Fed warning " .. OnOff(db.wellFed))
-	elseif cmd == "raid" or cmd == "assign" then
+	elseif cmd == "blessings" or cmd == "bless" or cmd == "raid" or cmd == "assign" then
 		if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end
 		return
 	elseif cmd == "minimap" then
@@ -286,6 +458,15 @@ SlashCmdList.LIGHTBOUND = function(msg)
 		-- names keep their case: split the original message again
 		if ns.ToggleTank then ns.ToggleTank((select(2, strsplit(" ", strtrim(msg or ""), 2)))) end
 		return
+	elseif cmd == "grid" or cmd == "snap" then
+		local n = tonumber(arg)
+		if n then
+			db.gridSize = math.max(4, math.min(100, math.floor(n))); db.snap = true
+			Print("snap to grid on, " .. db.gridSize .. " px")
+		else
+			db.snap = not db.snap; Print("snap to grid " .. OnOff(db.snap))
+		end
+		ShowGrid(ns.unlocked)
 	elseif cmd == "move" then
 		ns.ToggleMove() return
 	elseif cmd == "reset" then
@@ -295,7 +476,7 @@ SlashCmdList.LIGHTBOUND = function(msg)
 		return
 	else
 		Print("/lb opens the options window. Commands: toggle " .. OnOff(db.enabled) .. ", sound " .. OnOff(db.sound) .. ", rfraid " .. OnOff(db.raid)
-			.. ", world " .. OnOff(db.world) .. ", seal " .. OnOff(db.seal) .. ", empty " .. OnOff(db.sealEmptyInCombat) .. ", height <n>, rested " .. OnOff(db.wellRested) .. ", raid (blessings window), minimap " .. OnOff(db.minimap) .. ", ignore <debuff>, tank <name>, why, move, reset")
+			.. ", world " .. OnOff(db.world) .. ", seal " .. OnOff(db.seal) .. ", empty " .. OnOff(db.sealEmptyInCombat) .. ", height <n>, rested " .. OnOff(db.wellRested) .. ", blessings (window, also /lb raid), minimap " .. OnOff(db.minimap) .. ", ignore <debuff>, tank <name>, why, move, grid [size] " .. OnOff(db.snap) .. ", reset")
 		return
 	end
 	Refresh()

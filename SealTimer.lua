@@ -66,23 +66,42 @@ end
 
 local function ClearSeal() seal = nil end
 
+-- The seal you have up, by name ("Seal of Wisdom"), or nil. Kept from the seal cast itself
+-- and synced from your buffs when they can be read, so it still works when combat hides them.
+-- Judgement tracking (Combat.lua, Judgements.lua) uses it to know which Judgement went out.
+function ns.ActiveSeal()
+	if seal and seal.expires > GetTime() then return seal.name end
+	local buffs, hidden = ns.ReadPlayerBuffs()
+	for name in pairs(buffs) do if IsSeal(name) then return name end end
+	return nil
+end
+local updating = false -- true while M:Update runs (guards against re-entry from OnUpdate)
+
 local function OnUpdate()
 	if not seal then return end
 	local left = seal.expires - GetTime()
-	if left <= 0 then ClearSeal(); M:Update(); return end
+	if left <= 0 then
+		ClearSeal()
+		-- never re-enter Update from inside Update; run it on the next frame instead
+		if updating then C_Timer.After(0, function() M:Update() end) else M:Update() end
+		return
+	end
 	bar:SetValue(left)
 	timeText:SetText(left >= 10 and string.format("%d", left) or string.format("%.1f", left))
 	if left <= 5 then timeText:SetTextColor(1, 0.25, 0.25) else timeText:SetTextColor(1, 1, 1) end
 end
 
-function M:Update()
+local function UpdateNow()
 	if not f then return end
 	local db = ns.db
 
 	local buffs, hidden = ns.ReadPlayerBuffs()
 	local found
+	local now = GetTime()
 	for name, b in pairs(buffs) do
-		if IsSeal(name) then found = name
+		-- the client can keep an expired seal in the list for a moment; treat it as gone, or
+		-- SetSeal -> OnUpdate (left <= 0) -> M:Update would loop until the stack runs out
+		if IsSeal(name) and not (b.expires and b.expires > 0 and b.expires <= now) then found = name
 			if b.expires and b.expires > 0 then
 				SetSeal(name, b.icon, b.duration, b.expires)
 			elseif not seal or seal.name ~= name then
@@ -114,13 +133,21 @@ function M:Update()
 	end
 end
 
+function M:Update()
+	if updating then return end
+	updating = true
+	local ok, err = pcall(UpdateNow)
+	updating = false
+	if not ok then geterrorhandler()(err) end
+end
+
 function M:Layout()
 	if f then Layout() end
 end
 
 function M:Init()
 	f = CreateFrame("Frame", "LightboundSealFrame", UIParent)
-	f:SetFrameStrata("MEDIUM")
+	f:SetFrameStrata("LOW")
 	f:Hide()
 
 	local bg = f:CreateTexture(nil, "BACKGROUND")

@@ -69,7 +69,7 @@ end
 function M:Init()
 	f = CreateFrame("Frame", "LightboundRighteousFuryFrame", UIParent)
 	f:SetSize(64, 64)
-	f:SetFrameStrata("HIGH")
+	f:SetFrameStrata("LOW")
 	f:Hide()
 	cast = ns.CastOverlay(f)
 	Sync = function() cast:Sync(f:IsShown() and SPELL_NAME or nil) end

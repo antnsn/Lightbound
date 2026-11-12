@@ -2,7 +2,7 @@
 ## Title: Lightbound
 ## Notes: Paladin buffing and raid helper: one key buffs party/raid (PallyPower-compatible assignments), tank guard, judgement assignments, cleanse list, paladin cooldowns, DI picker, warnings and trackers. /lb for options.
 ## Author: Rheolux
-## Version: 4.2
+## Version: 4.3
 ## IconTexture: Interface\AddOns\Lightbound\Media\Icon64
 ## SavedVariables: LightboundDB
 

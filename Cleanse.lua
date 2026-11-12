@@ -640,7 +640,7 @@ function M:Init()
 	PickSpell()
 	frame = CreateFrame("Frame", "LightboundCleanseFrame", UIParent, "BackdropTemplate")
 	frame:SetSize(ROW_W, TITLE_H + 5 * (ROW_H + GAP) + 6)
-	frame:SetFrameStrata("MEDIUM")
+	frame:SetFrameStrata("LOW")
 	frame:Hide()
 	if ns.UI and ns.UI.Box then
 		ns.UI.Box(frame, 0.85)
@@ -654,8 +654,7 @@ function M:Init()
 	title:SetTextColor(1, 0.82, 0)
 	ns.MakeMovable(frame, "clPoint")
 	ns.ApplyPoint(frame, "clPoint")
-	-- re-anchor top-left after a drag, so growth (more members, bigger cells) goes down/right
-	frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing(); SaveTopLeft(self); ns.ApplyPoint(self, "clPoint") end)
+	-- drags keep the TOPLEFT anchor (Core.lua), so growth (more members, bigger cells) goes down/right
 	if ns.db.clPoint[1] ~= "TOPLEFT" then SaveTopLeft(frame); ns.ApplyPoint(frame, "clPoint") end -- pre-grid position
 
 	for i = 1, MAX_ROWS do rows[i] = MakeRow(i) end

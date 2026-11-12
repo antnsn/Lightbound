@@ -1,4 +1,4 @@
--- Minimap button: left-click options, right-click raid blessings, drag to move around the minimap.
+-- Minimap button: left-click options, right-click the Blessings window, drag to move around the minimap.
 -- No libraries; the position is an angle around the minimap (ns.db.minimapAngle).
 local _, ns = ...
 
@@ -78,7 +78,7 @@ function M:Init()
 		GameTooltip:SetOwner(self, "ANCHOR_LEFT")
 		GameTooltip:AddLine("Lightbound")
 		GameTooltip:AddLine("Left-click: options", 1, 1, 1)
-		GameTooltip:AddLine("Right-click: raid blessings", 1, 1, 1)
+		GameTooltip:AddLine("Right-click: blessings", 1, 1, 1)
 		GameTooltip:AddLine((ns.unlocked and "Shift-click: lock frames" or "Shift-click: unlock frames"), 1, 1, 1)
 		GameTooltip:AddLine("Drag: move", 0.6, 0.6, 0.6)
 		GameTooltip:Show()

@@ -1,11 +1,17 @@
--- Raid blessings window (/lb raid): one row per paladin in the group, one column per class
--- plus the aura and the Judgement (Lightbound users only, see Judgements.lua). Click a cell to change
--- it (left = next, right = previous). The group leader and assists can change every row, others only
--- their own (or anyone who allows it).
+-- Blessings window (/lb blessings, also /lb raid): one row per paladin in the group, one column
+-- per class plus the aura and the Judgement (Lightbound users only, see Judgements.lua). Click a
+-- cell to change it (left = next, right = previous). The group leader and assists can change every
+-- row, others only their own (or anyone who allows it).
+-- This is the only place that decides blessings: your row is what the buff key casts, solo, in a
+-- party and in a raid. Under your row sits the tank line: what a tank gets from you instead of
+-- Salvation, shown only under the classes you give Salvation.
 local _, ns = ...
 
 local win, rows, header = nil, {}, {}
 local NAME_W, CELL, GAP, ROW_H, PAD = 170, 30, 6, 40, 20
+local TANK_H, TANK_CELL = 30, 24 -- the tank line under your row
+local CELL_Y = -(ROW_H - CELL) / 2 -- cells sit in the top ROW_H of a row (your row is taller)
+local SALVATION = 4
 local HEADER_H, FOOTER_H, COLS_Y = 44, 56, 70
 
 local CLASS_ICON = {
@@ -48,15 +54,23 @@ local function AuraTexture(i)
 	return auraTex[i] or FALLBACK_AURA[i]
 end
 
--- Blessing numbers a paladin can cast (unknown info: all). Salvation is always offered,
--- because PallyPower on Forever never reports it.
+-- Blessing numbers a paladin can cast (unknown info: all). Salvation is always offered for
+-- others, because PallyPower on Forever never reports it; for you we know your spellbook.
 local function BlessOptions(name)
 	local p = ns.pallys[name]
+	local mine = name == ns.MyName()
 	local list = { 0 }
 	for i = 1, #ns.PP_SPELL do
-		if not p or not next(p.bless or {}) or p.bless[i] or i == 4 then list[#list + 1] = i end
+		if not p or not next(p.bless or {}) or p.bless[i] or (i == SALVATION and not mine) then list[#list + 1] = i end
 	end
 	return list
+end
+
+-- true when this is your row and you haven't learned blessing `idx` (the buff key can't cast it)
+local function Unlearned(name, idx)
+	if idx <= 0 or name ~= ns.MyName() then return false end
+	local p = ns.pallys[name]
+	return p and next(p.bless or {}) and not p.bless[idx] or false
 end
 
 local function AuraOptions(name)
@@ -157,10 +171,13 @@ local function Cell(parent, onClick, onEnter)
 		self.bg:SetColorTexture(unpack(UI.C.button))
 		GameTooltip:Hide()
 	end)
-	b.Set = function(self, tex, editable)
+	b.Set = function(self, tex, editable, unlearned)
 		if tex then self.icon:SetTexture(tex); self.icon:Show(); self.dash:Hide()
 		else self.icon:Hide(); self.dash:Show() end
-		self.icon:SetDesaturated(false)
+		-- a blessing you haven't learned yet: grey icon, red tint
+		self.icon:SetDesaturated(unlearned and true or false)
+		self.icon:SetVertexColor(1, unlearned and 0.35 or 1, unlearned and 0.35 or 1)
+		self.unlearned = unlearned
 		self:SetAlpha(editable and 1 or 0.55)
 	end
 	return b
@@ -225,6 +242,8 @@ local function ShowPopup(anchor, pally, cid)
 	popup:Show()
 end
 
+local Refresh -- defined below; the tank line calls it
+
 local function CdText(c)
 	if not c or not c.known then return nil end
 	local left = (c.readyAt or 0) - GetTime()
@@ -237,10 +256,10 @@ end
 local function MakeRow(i)
 	local UI = ns.UI
 	local r = CreateFrame("Frame", nil, win.body)
-	r:SetSize(TOTAL_W, ROW_H)
-	r:SetPoint("TOPLEFT", 0, -(i - 1) * ROW_H)
+	r:SetSize(TOTAL_W, ROW_H) -- placed by Refresh: your row is taller
 	r.stripe = UI.Tex(r, "BACKGROUND", UI.C.side); r.stripe:SetAllPoints()
 	r.name = UI.Font(r, 14, UI.C.text); r.name:SetPoint("TOPLEFT", 8, -6); r.name:SetWidth(NAME_W - 14)
+	r.name:SetWordWrap(false) -- long names (with a surname) are cut, not wrapped over the info line
 	r.info = UI.Font(r, 11, UI.C.dim); r.info:SetPoint("TOPLEFT", r.name, "BOTTOMLEFT", 0, -2)
 	r.cells = {}
 	for cid = 1, 9 do
@@ -256,6 +275,9 @@ local function MakeRow(i)
 			local cname = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[class]) or class
 			GameTooltip:AddLine(r.pally .. " > " .. cname)
 			GameTooltip:AddLine(idx > 0 and ("Blessing of " .. ns.PP_SPELL[idx]) or "Nothing assigned", 1, 1, 1)
+			if self.unlearned then
+				GameTooltip:AddLine("You haven't learned this yet: the buff key skips it", 1, 0.35, 0.35)
+			end
 			for member, idx2 in pairs(ns.GetNormalAssigns(r.pally, cid)) do
 				GameTooltip:AddLine(member .. ": " .. (ns.PP_SPELL[idx2] or "?"), 0.6, 0.8, 1)
 			end
@@ -265,7 +287,7 @@ local function MakeRow(i)
 			end
 			GameTooltip:Show()
 		end)
-		c:SetPoint("LEFT", r, "LEFT", ColX(cid), 0)
+		c:SetPoint("TOPLEFT", r, "TOPLEFT", ColX(cid), CELL_Y)
 		c.badge = ns.UI.Font(c, 10, ns.UI.C.accent, "OVERLAY")
 		c.badge:SetPoint("BOTTOMRIGHT", -1, 1)
 		r.cells[cid] = c
@@ -281,7 +303,7 @@ local function MakeRow(i)
 		GameTooltip:AddLine(idx > 0 and (ns.PP_AURA[idx] .. " Aura") or "No aura assigned", 1, 1, 1)
 		GameTooltip:Show()
 	end)
-	r.aura:SetPoint("LEFT", r, "LEFT", AURA_X, 0)
+	r.aura:SetPoint("TOPLEFT", r, "TOPLEFT", AURA_X, CELL_Y)
 	r.judge = Cell(r, function(self, button)
 		if not ns.CanControl(r.pally) then ns.Print("only the leader or an assist can change " .. r.pally .. ".") return end
 		if not ns.SetJudgeAssign then return end
@@ -298,12 +320,12 @@ local function MakeRow(i)
 		end
 		GameTooltip:Show()
 	end)
-	r.judge:SetPoint("LEFT", r, "LEFT", JUDGE_X, 0)
+	r.judge:SetPoint("TOPLEFT", r, "TOPLEFT", JUDGE_X, CELL_Y)
 	r.cds = {}
 	for k = 1, 3 do
 		local cd = CreateFrame("Frame", nil, r)
 		cd:SetSize(CELL, CELL)
-		cd:SetPoint("LEFT", r, "LEFT", CD_X + (k - 1) * (CELL + GAP), 0)
+		cd:SetPoint("TOPLEFT", r, "TOPLEFT", CD_X + (k - 1) * (CELL + GAP), CELL_Y)
 		cd.icon = cd:CreateTexture(nil, "ARTWORK"); cd.icon:SetAllPoints()
 		cd.icon:SetTexture(CD_ICON[k]); cd.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 		cd.text = ns.UI.Font(cd, 11, ns.UI.C.text, "OVERLAY")
@@ -319,24 +341,100 @@ local function MakeRow(i)
 		cd:SetScript("OnLeave", function() GameTooltip:Hide() end)
 		r.cds[k] = cd
 	end
+	-- tank line: under your row only
+	local t = CreateFrame("Frame", nil, r)
+	t:SetPoint("TOPLEFT", 0, -ROW_H); t:SetSize(TOTAL_W, TANK_H)
+	t.guard = UI.Toggle(t, 12, -2, NAME_W - 16, "On tanks", nil,
+		function() return ns.db.tankGuard end,
+		function(v) ns.db.tankGuard = v end)
+	t.guard:HookScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine("Never Blessing of Salvation on a tank")
+		GameTooltip:AddLine("A tank gets the blessing on this line from you instead.", 1, 1, 1)
+		GameTooltip:AddLine("Who counts as a tank: Options > Tanks.", 0.6, 0.6, 0.6)
+		GameTooltip:Show()
+	end)
+	t.guard:HookScript("OnLeave", function() GameTooltip:Hide() end)
+	t.cells = {}
+	for cid = 1, 9 do
+		local class = ns.PP_CLASS_NAME[cid]
+		local c = Cell(t, function(_, button)
+			if not ns.db.tankGuard then return end
+			ns.StepTankBless(class, button == "RightButton" and -1 or 1)
+			Refresh()
+		end, function(self)
+			local cname = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[class]) or class
+			local key = ns.TankBless(class)
+			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+			GameTooltip:AddLine(cname .. " tanks, instead of Salvation")
+			GameTooltip:AddLine(key ~= "None" and ("Blessing of " .. key) or "Nothing: skip tanks of this class", 1, 1, 1)
+			GameTooltip:AddLine("Left-click next, right-click previous", 0.6, 0.6, 0.6)
+			GameTooltip:Show()
+		end)
+		c:SetSize(TANK_CELL, TANK_CELL)
+		c:SetPoint("TOPLEFT", t, "TOPLEFT", ColX(cid) + (CELL - TANK_CELL) / 2, -(TANK_H - TANK_CELL) / 2)
+		t.cells[cid] = c
+	end
+	t.none = UI.Font(t, 12, UI.C.dim)
+	t.none:SetPoint("LEFT", t, "LEFT", ColX(1), 0)
+	t.none:SetText("You give no Salvation, so tanks just get your row.")
+	r.tankLine = t
 	rows[i] = r
 	return r
 end
 
-local function Refresh()
+function Refresh()
 	if not win or not win:IsShown() then return end
 	local UI = ns.UI
 	local list = ns.GroupPaladins()
 	local me = ns.MyName()
+	local y = 0
 	for i, name in ipairs(list) do
 		local r = rows[i] or MakeRow(i)
 		r.pally = name
-		r.stripe:SetAlpha(i % 2 == 0 and 0.5 or 1)
+		local mine = name == me
+		-- your row: highlighted and taller, with the tank line under it
+		r:ClearAllPoints(); r:SetPoint("TOPLEFT", 0, -y)
+		r:SetHeight(mine and (ROW_H + TANK_H) or ROW_H)
+		y = y + r:GetHeight()
+		if mine then
+			r.stripe:SetColorTexture(UI.C.selected[1], UI.C.selected[2], UI.C.selected[3], 0.55)
+		else
+			r.stripe:SetColorTexture(unpack(UI.C.side))
+			r.stripe:SetAlpha(i % 2 == 0 and 0.5 or 1)
+		end
+		if mine then r.stripe:SetAlpha(1) end
+		local t = r.tankLine
+		t:SetShown(mine)
+		if mine then
+			t.guard.Sync()
+			local any = false
+			for cid = 1, 9 do
+				local c = t.cells[cid]
+				-- Salvation on the class, or on any one player of it (Shift-click)
+				local salv = ns.GetAssign(name, cid) == SALVATION
+				if not salv then
+					for _, idx in pairs(ns.GetNormalAssigns(name, cid)) do
+						if tonumber(idx) == SALVATION then salv = true break end
+					end
+				end
+				if salv then
+					any = true
+					local key = ns.TankBless(ns.PP_CLASS_NAME[cid])
+					c:Set(key ~= "None" and BlessTexture(ns.PP_SPELL_ID[key]) or nil, ns.db.tankGuard)
+					c:Show()
+				else
+					c:Hide()
+				end
+			end
+			t.none:SetShown(not any)
+		end
 		local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS.PALADIN
-		r.name:SetText(name == me and (name .. "  " .. UI.Hex(UI.C.dim) .. "(you)|r") or name)
+		r.name:SetText(name)
 		if cc then r.name:SetTextColor(cc.r, cc.g, cc.b) end
 		local p = ns.pallys[name]
 		local bits = {}
+		if name == me then bits[1] = "you" end
 		if not p then bits[#bits + 1] = "|cffff6666no addon|r"
 		else
 			bits[#bits + 1] = (tonumber(p.symbols) or 0) .. " symbols"
@@ -347,7 +445,7 @@ local function Refresh()
 		local edit = ns.CanControl(name)
 		for cid = 1, 9 do
 			local idx = ns.GetAssign(name, cid)
-			r.cells[cid]:Set(idx > 0 and BlessTexture(idx) or nil, edit)
+			r.cells[cid]:Set(idx > 0 and BlessTexture(idx) or nil, edit, Unlearned(name, idx))
 			local n = 0
 			for _ in pairs(ns.GetNormalAssigns(name, cid)) do n = n + 1 end
 			r.cells[cid].badge:SetText(n > 0 and ("+" .. n) or "")
@@ -371,13 +469,13 @@ local function Refresh()
 		r:Show()
 	end
 	for i = #list + 1, #rows do rows[i]:Hide() end
-	win:SetHeight(COLS_Y + 34 + #list * ROW_H + FOOTER_H + 10)
-	win.open:SetLabel(ns.db.freeAssign and "Others may assign me: on" or "Others may assign me: off")
+	win:SetHeight(COLS_Y + 34 + y + FOOTER_H + 10)
+	win.open.Sync()
 	local status
 	if ns.GroupPassive() then
 		status = "PallyPower is loaded: Lightbound only reads its assignments. Remove PallyPower to sync from here."
 	elseif not IsInGroup() then
-		status = "Not in a group. Changes are saved and sent when you join one."
+		status = "Not in a group: your row is what the buff key casts. Other paladins show up here when you group."
 	elseif ns.IsGroupLeader(me) then
 		status = "You are leader or assist: you can change every row."
 	else
@@ -401,7 +499,7 @@ local function Build()
 	win:EnableMouse(true)
 	win:Hide()
 	tinsert(UISpecialFrames, win:GetName())
-	UI.Skin(win, "Raid blessings")
+	UI.Skin(win, "Blessings")
 	local wm = UI.Watermark(win, 220, 0.06)
 	wm:SetPoint("CENTER", win, "CENTER", 0, -10)
 
@@ -440,30 +538,33 @@ local function Build()
 	footer:SetPoint("BOTTOMLEFT"); footer:SetPoint("BOTTOMRIGHT"); footer:SetHeight(FOOTER_H)
 	UI.Tex(footer, "BACKGROUND", C.header):SetAllPoints()
 	local fl = UI.Tex(footer, "ARTWORK", C.border); fl:SetPoint("TOPLEFT"); fl:SetPoint("TOPRIGHT"); fl:SetHeight(1)
+	local function Tip(widget, title, text)
+		widget:HookScript("OnEnter", function(self)
+			GameTooltip:SetOwner(self, "ANCHOR_TOP")
+			GameTooltip:AddLine(title)
+			if text then GameTooltip:AddLine(text, 1, 1, 1) end
+			GameTooltip:Show()
+		end)
+		widget:HookScript("OnLeave", function() GameTooltip:Hide() end)
+	end
 	local auto = UI.Button(footer, "Auto-assign", 110, 26, true)
 	auto:SetPoint("TOPLEFT", 16, -8)
 	auto:SetScript("OnClick", AutoAssign)
-	local clear = UI.Button(footer, "Clear", 70, 26)
-	clear:SetPoint("LEFT", auto, "RIGHT", 8, 0)
-	clear:SetScript("OnClick", function() ns.ClearAssignments() end)
+	Tip(auto, "Auto-assign", "Fill every row you can change from what each class wants.")
 	local sync = UI.Button(footer, "Refresh", 80, 26)
-	sync:SetPoint("LEFT", clear, "RIGHT", 8, 0)
+	sync:SetPoint("LEFT", auto, "RIGHT", 8, 0)
 	sync:SetScript("OnClick", function() ns.RequestSync(); Refresh() end)
-	local open = UI.Button(footer, "", 190, 26)
-	open:SetPoint("TOPRIGHT", -16, -8)
-	open:SetScript("OnClick", function()
-		ns.db.freeAssign = not ns.db.freeAssign
-		ns.SendSelf()
-		Refresh()
-	end)
-	open:SetScript("OnEnter", function(self)
-		GameTooltip:SetOwner(self, "ANCHOR_TOP")
-		GameTooltip:AddLine("Let any paladin in the group change your blessings,")
-		GameTooltip:AddLine("not only the leader and assists.", 1, 1, 1)
-		GameTooltip:Show()
-	end)
-	open:HookScript("OnLeave", function() GameTooltip:Hide() end)
+	Tip(sync, "Refresh", "Ask the other paladins for their rows.")
+	local open = UI.Toggle(footer, 16 + 110 + 8 + 80 + 20, -8, 200, "Others may assign me", nil,
+		function() return ns.db.freeAssign end,
+		function(v) ns.db.freeAssign = v; ns.SendSelf(); Refresh() end)
+	Tip(open, "Others may assign me", "Let any paladin in the group change your row, not only the leader and assists.")
 	win.open = open
+	-- Clear on its own at the right, away from the buttons pressed by habit
+	local clear = UI.Button(footer, "Clear", 70, 26)
+	clear:SetPoint("TOPRIGHT", -16, -8)
+	clear:SetScript("OnClick", function() ns.ClearAssignments() end)
+	Tip(clear, "Clear", "Empty every row you can change (only your own unless you're leader or assist).")
 	win.status = UI.Font(footer, 11, C.dim)
 	win.status:SetPoint("BOTTOMLEFT", 16, 6); win.status:SetPoint("RIGHT", -16, 0)
 

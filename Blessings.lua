@@ -126,7 +126,7 @@ end
 function M:Init()
 	f = CreateFrame("Frame", "LightboundBlessingFrame", UIParent)
 	f:SetSize(SIZE, SIZE)
-	f:SetFrameStrata("MEDIUM")
+	f:SetFrameStrata("LOW")
 	f:Hide()
 	for i = 1, #ns.BLESSINGS do Icon(i):Hide() end -- create every icon and its overlay now, out of combat
 	ns.MakeMovable(f, "blPoint")

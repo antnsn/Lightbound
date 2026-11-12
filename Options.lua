@@ -380,7 +380,7 @@ local function BuildSeal()
 end
 
 local function BuildBlessings()
-	local p = NewPage("Blessings on me", "Icons with time left for the blessings you want on yourself.")
+	local p = NewPage("My buffs", "Icons with time left for the blessings you want on yourself.")
 	local W = CONTENT_W
 	p:Add(select(2, DBToggle(p, 0, p.y, W, "blessEnabled", "Show my blessings")) + 6)
 	p:Add(Section(p, p.y - 4, "Track") + 6)
@@ -400,48 +400,30 @@ local function BuildBlessings()
 end
 
 local function BuildKey()
-	local p = NewPage("Buff key", "One key, out of combat: Righteous Fury, then your aura, then blessings on the group.")
+	local p = NewPage("Buff key", "One key, out of combat: Righteous Fury, then your aura, then the blessings in your row of the Blessings window.")
 	local W = CONTENT_W
+	-- who gets what lives in the Blessings window only; this page is about the key itself
+	local rb = Button(p, "Open blessings", 150, 26, true)
+	rb:SetPoint("TOPLEFT", 0, p.y)
+	rb:SetScript("OnClick", function() win:Hide(); if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end end)
+	p:Add(40)
 	p:Add(select(2, DBToggle(p, 0, p.y, W, "pbEnabled", "Buff the group with one key", nil,
 		function() ns.ApplyPartyBuffKey() end)) + 10)
 
-	p:Add(select(2, KeyButton(p, p.y, "Key", "pbKey", function() ns.ApplyPartyBuffKey() end, "buff key")))
+	p:Add(select(2, KeyButton(p, p.y, "Key", "pbKey", function() ns.ApplyPartyBuffKey() end, "buff key")) + 6)
 
-	p:Add(select(2, Cycle(p, p.y, "Assignments", ns.SOURCES,
-		function() return ns.db.pbSource end,
-		function(v) ns.db.pbSource = v end,
-		function() return "using " .. ns.PartyBuffSource() end)) + 2)
-	local n = Font(p, 12, C.dim)
-	n:SetPoint("TOPLEFT", 0, p.y); n:SetPoint("RIGHT", p, "RIGHT")
-	n:SetText("Auto: the group assignments (/lb raid, also from PallyPower users) in raids when you have any, otherwise your own list.")
-	p:Add(30)
-	local rb = Button(p, "Open raid blessings", 170, 26, true)
-	rb:SetPoint("TOPLEFT", 0, p.y)
-	rb:SetScript("OnClick", function() win:Hide(); if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end end)
-	p:Add(38)
-
+	p:Add(Section(p, p.y, "How it casts") + 6)
 	p:Add(select(2, DBToggle(p, 0, p.y, W, "pbShowNext", "Show what the next press will cast")) + 4)
 	p:Add(select(2, DBToggle(p, 0, p.y, W, "pbRF", "Cast Righteous Fury first if it's missing")) + 4)
 	p:Add(select(2, DBToggle(p, 0, p.y, W, "pbGreater", "Greater Blessings in raid", "Needs the spell and Symbol of Kings in your bags.")) + 12)
 	Slider(p, p.y, "Rebuff with time left", "pbRefreshMinutes", 0, 4, 1, " min")
 end
 
-local function BuildClasses()
-	local p = NewPage("Class blessings", "Your own blessing per class. Used when Assignments is Own, or Auto outside raids (or in a raid with no group assignments).")
-	for _, class in ipairs(ns.CLASSES) do
-		local name = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[class]) or class
-		local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[class]
-		p:Add(select(2, Cycle(p, p.y, name, ns.CHOICES,
-			function() return ns.db.pbAssign[class] end,
-			function(v) ns.db.pbAssign[class] = v end, nil,
-			cc and { cc.r, cc.g, cc.b } or nil)) + 2)
-	end
-end
-
 local function BuildRested()
 	local p = NewPage("Extras", "Levelling helpers and the minimap button.")
 	local W = CONTENT_W
-	p:Add(select(2, DBToggle(p, 0, p.y, W, "minimap", "Minimap button  (left-click options, right-click raid blessings)")) + 10)
+	-- grid snapping is set on the grid itself while frames are unlocked (and /lb grid)
+	p:Add(select(2, DBToggle(p, 0, p.y, W, "minimap", "Minimap button  (left-click options, right-click blessings)")) + 10)
 	-- one compact block per buff timer: warn / sound / icon on one line, then the slider
 	local function Timer(title, key, test, note)
 		local y = p.y - 4
@@ -460,6 +442,8 @@ local function BuildRested()
 		DBToggle(p, third, p.y, third, key .. "Sound", "Sound")
 		DBToggle(p, third * 2, p.y, third, key .. "Icon", "Countdown icon")
 		p:Add(32)
+		p:Add(select(2, DBToggle(p, 0, p.y, W, key .. "Keep", "Keep following it after it's gone  (rebuff warning)",
+			nil, function() ns.UpdateBuffTimers() end)) + 4)
 		p:Add(select(2, Slider(p, p.y, "Warn with time left", key .. "Minutes", 1, 30, 1, " min")) + 8)
 	end
 	Timer("Well-Rested", "wellRested", function() ns.TestWellRested() end, "Cozy Sleeping Bag buff.")
@@ -548,7 +532,7 @@ local function Build()
 	Tex(side, "BACKGROUND", C.side):SetAllPoints()
 	local sl = Tex(side, "ARTWORK", C.border); sl:SetPoint("TOPRIGHT"); sl:SetPoint("BOTTOMRIGHT"); sl:SetWidth(1)
 
-	BuildRF(); BuildAura(); BuildSeal(); BuildCombat(); BuildBlessings(); BuildKey(); BuildClasses()
+	BuildRF(); BuildAura(); BuildSeal(); BuildCombat(); BuildBlessings(); BuildKey()
 	BuildOverview(); BuildReagents(); BuildRested()
 	for _, build in ipairs(ns.optionPages) do build(ns.UI) end
 

@@ -30,7 +30,9 @@ end
 -- The aura you should have up, as "Devotion" etc. (nil if none chosen or not learned)
 function ns.WantedAura()
 	local want
-	if ns.PartyBuffSource and ns.PartyBuffSource() == "Group" then
+	-- the aura from the Blessings window only in a raid where you have assignments (as before
+	-- blessings moved to the window for good); otherwise your choice on the Aura page
+	if IsInRaid() and ns.HasAssignments and ns.HasAssignments() then
 		want = ns.PP_AURA[ns.GetAuraAssign(ns.MyName())]
 	end
 	want = want or ns.db.auraChoice
@@ -99,7 +101,7 @@ end
 function M:Init()
 	f = CreateFrame("Frame", "LightboundAuraFrame", UIParent)
 	f:SetSize(40, 40)
-	f:SetFrameStrata("HIGH")
+	f:SetFrameStrata("LOW")
 	f:Hide()
 	cast = ns.CastOverlay(f)
 	local border = f:CreateTexture(nil, "BACKGROUND")

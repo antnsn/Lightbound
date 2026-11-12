@@ -301,7 +301,7 @@ end
 function M:Init()
 	frame = CreateFrame("Frame", "LightboundTrackersFrame", UIParent)
 	frame:SetSize(#ORDER * (SIZE + GAP) - GAP, SIZE)
-	frame:SetFrameStrata("MEDIUM")
+	frame:SetFrameStrata("LOW")
 	frame:Hide()
 	icons = {}
 	for _, key in ipairs(ORDER) do icons[key] = MakeIcon(frame) end

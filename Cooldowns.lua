@@ -334,7 +334,7 @@ function M:Init()
 	Me = ns.MyName()
 	frame = CreateFrame("Frame", "LightboundCooldownsFrame", UIParent, "BackdropTemplate")
 	frame:SetSize(ROW_W, 60)
-	frame:SetFrameStrata("MEDIUM")
+	frame:SetFrameStrata("LOW")
 	frame:Hide()
 	if ns.UI and ns.UI.Box then
 		ns.UI.Box(frame, 0.85)
