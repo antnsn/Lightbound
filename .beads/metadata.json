@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "Lightbound",
+  "project_id": "180a1304-3254-40ef-9622-061ab13be154"
+}
