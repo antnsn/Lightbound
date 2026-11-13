@@ -6,7 +6,7 @@ local SPELL_ID, SPELL_NAME, ICON = 25780, "Righteous Fury", 135962
 local M = {}
 ns.modules[#ns.modules + 1] = M
 
-local f, pulse, cast
+local f, cast -- f: the card (ns.MakeCard)
 local shown, hasRF = false, nil
 
 local function KnowsSpell()
@@ -52,41 +52,27 @@ function M:Refresh()
 	end -- auras hidden and RF not listed: keep the last known state instead of a false alarm
 
 	if ns.unlocked then
-		pulse:Stop(); f:SetAlpha(1); f:Show(); shown = false
+		f:Glow(false); f:SetAlpha(1); f:Show(); shown = false
 		return
 	end
 	if ShouldWarn() then
 		if not shown then
-			f:Show(); pulse:Play()
+			f:Show(); f:Glow(true)
 			if ns.db.sound then PlaySound(SOUNDKIT.RAID_WARNING, "Master") end
 			shown = true
 		end
 	elseif shown or f:IsShown() then
-		pulse:Stop(); f:Hide(); shown = false
+		f:Glow(false); f:Hide(); shown = false
 	end
 end
 
 function M:Init()
-	f = CreateFrame("Frame", "LightboundRighteousFuryFrame", UIParent)
-	f:SetSize(64, 64)
-	f:SetFrameStrata("LOW")
-	f:Hide()
+	f = ns.MakeCard("LightboundRighteousFuryFrame")
+	f:SetIcon(ICON)
+	f:SetTitle(SPELL_NAME)
+	f:SetStatus("Not active, click to cast", true)
 	cast = ns.CastOverlay(f)
 	Sync = function() cast:Sync(f:IsShown() and SPELL_NAME or nil) end
-
-	local border = f:CreateTexture(nil, "BACKGROUND")
-	border:SetPoint("TOPLEFT", -3, 3); border:SetPoint("BOTTOMRIGHT", 3, -3)
-	border:SetColorTexture(1, 0.1, 0.1, 0.9)
-	local icon = f:CreateTexture(nil, "ARTWORK")
-	icon:SetAllPoints(); icon:SetTexture(ICON); icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-	local text = f:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-	text:SetPoint("TOP", f, "BOTTOM", 0, -6)
-	text:SetText("NO RIGHTEOUS FURY"); text:SetTextColor(1, 0.2, 0.2)
-
-	pulse = f:CreateAnimationGroup()
-	pulse:SetLooping("BOUNCE")
-	local fade = pulse:CreateAnimation("Alpha")
-	fade:SetFromAlpha(1); fade:SetToAlpha(0.35); fade:SetDuration(0.6)
 
 	ns.MakeMovable(f, "rfPoint")
 	ns.ApplyPoint(f, "rfPoint")

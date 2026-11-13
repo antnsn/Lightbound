@@ -8,7 +8,7 @@ ns.AURAS = { "Devotion", "Retribution", "Concentration", "Shadow Resistance", "F
 local M = {}
 ns.modules[#ns.modules + 1] = M
 
-local f, icon, text
+local f -- the card (ns.MakeCard)
 local active          -- key of the aura that is up, false if none, nil if unknown
 
 local function Known(name)
@@ -42,15 +42,23 @@ function ns.WantedAura()
 	return nil
 end
 
+local castAura -- the aura you cast yourself (UNIT_SPELLCAST_SUCCEEDED), trusted while auras are hidden
+
 local function Read()
 	local buffs, hidden = ns.ReadPlayerBuffs()
 	for _, k in ipairs(ns.AURAS) do
 		-- only your own aura counts (another paladin's aura on you is theirs); an unreadable
 		-- source (combat) still counts, so you don't get a false NO AURA mid-fight
 		local b = buffs[k .. " Aura"]
-		if b and b.mine ~= false then active = k return end
+		if b and b.mine ~= false then active, castAura = k, nil return end
 	end
-	if not hidden then active = false end -- hidden in combat: keep the last known state
+	if hidden then
+		-- in combat the list can leave auras out (Devotion is often secret): the aura you just cast
+		-- is the best guess; otherwise keep the last known state
+		if castAura then active = castAura end
+		return
+	end
+	active, castAura = false, nil
 end
 
 local function Applies()
@@ -86,41 +94,45 @@ function M:Refresh()
 	local db = ns.db
 	local want = ns.WantedAura()
 	if ns.unlocked then
-		icon:SetTexture(Texture((want or "Devotion") .. " Aura")); icon:SetDesaturated(false)
-		text:SetText("NO AURA"); f:Show() return
+		f:SetIcon(Texture((want or "Devotion") .. " Aura")); f:SetFaded(false)
+		f:SetTitle((want or "Devotion") .. " Aura"); f:SetStatus("Not active, click to cast", true)
+		f:Glow(false); f:Show() return
 	end
 	local show = db.auraWarn and want and Applies()
 		and (active == false or (db.auraStrict and active and active ~= want))
 	if show then
-		icon:SetTexture(Texture(want .. " Aura"))
-		icon:SetDesaturated(active == false)
-		text:SetText(active == false and "NO AURA" or (active .. " > " .. want))
-		f:Show()
+		f:SetIcon(Texture(want .. " Aura"))
+		f:SetTitle(want .. " Aura")
+		if active == false then
+			f:SetStatus("Not active, click to cast", true)
+		else
+			f:SetStatus(active .. " Aura is up instead", true)
+		end
+		f:Show(); f:Glow(true)
 	else
-		f:Hide()
+		f:Glow(false); f:Hide()
 	end
 end
 
 function M:Init()
-	f = CreateFrame("Frame", "LightboundAuraFrame", UIParent)
-	f:SetSize(40, 40)
-	f:SetFrameStrata("LOW")
-	f:Hide()
+	f = ns.MakeCard("LightboundAuraFrame")
 	cast = ns.CastOverlay(f)
-	local border = f:CreateTexture(nil, "BACKGROUND")
-	border:SetPoint("TOPLEFT", -2, 2); border:SetPoint("BOTTOMRIGHT", 2, -2)
-	border:SetColorTexture(1, 0.1, 0.1, 0.9)
-	icon = f:CreateTexture(nil, "ARTWORK")
-	icon:SetAllPoints(); icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-	text = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	text:SetPoint("TOP", f, "BOTTOM", 0, -4)
-	text:SetTextColor(1, 0.3, 0.3)
 	ns.MakeMovable(f, "auPoint")
 	ns.ApplyPoint(f, "auPoint")
 	local ev = CreateFrame("Frame")
 	for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLED", "PLAYER_UPDATE_RESTING",
 		"PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "SPELLS_CHANGED" }) do ev:RegisterEvent(e) end
 	ev:RegisterUnitEvent("UNIT_AURA", "player")
-	ev:SetScript("OnEvent", function() M:Update() end)
+	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+	ev:SetScript("OnEvent", function(_, event, _, _, spellID)
+		if event == "UNIT_SPELLCAST_SUCCEEDED" then
+			local name = ns.SpellName(spellID)
+			local key = name and name:match("^(.+) Aura$")
+			if key then
+				for _, k in ipairs(ns.AURAS) do if k == key then castAura, active = k, k end end
+			end
+		end
+		M:Update()
+	end)
 	M:Update()
 end

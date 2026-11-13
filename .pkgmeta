@@ -17,3 +17,4 @@ ignore:
   - .beads
   - AGENTS.md
   - CLAUDE.md
+  - tools

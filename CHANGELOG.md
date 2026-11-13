@@ -1,5 +1,12 @@
 # Lightbound changelog
 
+## 4.4 (not released yet)
+
+- New look for the reminders: aura, Righteous Fury, Well-Rested and Well Fed are cards built on the Lightbound emblem. The icon is a round medallion in a gold ring with the emblem's sunburst turning slowly behind it, on a dark panel with a double gilt rule. When a buff is gone the light fades and the icon greys.
+- Exorcism and Hammer of Wrath use the game's own proc glow.
+- Casting an aura in combat clears the aura card, even when combat hides the aura from addons.
+- The cards stack above the proc and Judgement icons by default; frames you placed yourself stay put.
+
 ## 4.3.1
 
 Fixes

@@ -90,6 +90,36 @@ local function ProcList()
 	return list
 end
 
+-- Procs get the game's own proc glow (the one on action bars), which every player reads as "press
+-- this now". Built from Blizzard's ActionButtonSpellAlertTemplate on our own icon, not through
+-- ActionButtonSpellAlertManager, so Blizzard's alert bookkeeping isn't tainted. Without the template
+-- the icon pulses instead.
+local function ProcGlow(b, on)
+	if on == b.glowOn then return end
+	b.glowOn = on
+	if b.alert == nil then
+		local ok, frame = pcall(CreateFrame, "Frame", nil, b, "ActionButtonSpellAlertTemplate")
+		if ok and frame and frame.ProcStartAnim then
+			local w, h = b:GetSize()
+			frame:SetSize(w * 1.4, h * 1.4); frame:SetPoint("CENTER")
+			frame:Hide()
+			b.alert = frame
+		else
+			b.alert = false
+		end
+	end
+	local alert = b.alert
+	if alert then
+		if on then
+			alert:Show(); alert.ProcStartAnim:Play() -- the template moves on to its loop by itself
+		else
+			alert.ProcStartAnim:Stop()
+			if alert.ProcLoop then alert.ProcLoop:Stop() end
+			alert:Hide()
+		end
+	elseif on then b.pulse:Play() else b.pulse:Stop() end
+end
+
 local function UpdateProcs()
 	local db = ns.db
 	local list
@@ -103,13 +133,13 @@ local function UpdateProcs()
 			icon.tex:SetTexture(Texture(spell))
 			icon.label:SetText(spell == "Hammer of Wrath" and "HAMMER" or "EXORCISM")
 			icon:Show()
-			if not icon.pulse:IsPlaying() then icon.pulse:Play() end
+			ProcGlow(icon, true)
 			now[spell] = true
 			if not shown[spell] and db.procSound and not ns.unlocked then
 				PlaySound(SOUNDKIT and SOUNDKIT.ALARM_CLOCK_WARNING_3 or 12889, "Master")
 			end
 		else
-			icon.pulse:Stop()
+			ProcGlow(icon, false)
 			icon:Hide()
 		end
 	end

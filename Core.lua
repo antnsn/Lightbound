@@ -7,14 +7,14 @@ ns.isPaladin = class == "PALADIN"
 ns.defaults = {
 	enabled = true, sound = true, raid = true, world = true,
 	snap = true, gridSize = 20, -- unlocked frames snap to a grid around the screen centre
-	rfPoint = { "CENTER", "UIParent", "CENTER", 0, 180 },
+	rfPoint = { "CENTER", "UIParent", "CENTER", 0, 230 },
 	seal = true, sealEmptyInCombat = true, sealHeight = 220, sealWidth = 22,
 	sealPoint = { "CENTER", "UIParent", "CENTER", -260, -60 },
 	sealDur = {},
 	wellRested = true, wellRestedMinutes = 5, wellRestedSound = true, wellRestedIcon = true, wellRestedKeep = false,
-	wrPoint = { "CENTER", "UIParent", "CENTER", 0, 260 },
+	wrPoint = { "CENTER", "UIParent", "CENTER", 0, 350 },
 	wellFed = true, wellFedMinutes = 3, wellFedSound = true, wellFedIcon = true, wellFedKeep = false,
-	wfPoint = { "CENTER", "UIParent", "CENTER", 0, 200 },
+	wfPoint = { "CENTER", "UIParent", "CENTER", 0, 290 },
 	blessEnabled = true, blessOnlyProblems = false, blessWarnMinutes = 1, blessHideResting = true, blessOnlyGrouped = false,
 	blessTrack = { Might = true, Wisdom = false, Kings = true, Salvation = false, Light = false, Sanctuary = false },
 	blPoint = { "CENTER", "UIParent", "CENTER", 0, -200 },
@@ -30,7 +30,7 @@ ns.defaults = {
 	jaEnabled = true, jaSound = true, jaOnlyMine = false, jaPoint = { "CENTER", "UIParent", "CENTER", 0, 10 }, judgeAssign = {},
 	cdEnabled = true, cdOnlyRaid = false, cdShowSelf = true, cdPoint = { "CENTER", "UIParent", "CENTER", -380, -80 },
 	auraWarn = true, auraOnlyGrouped = false, auraStrict = false, auraChoice = "Devotion",
-	auPoint = { "CENTER", "UIParent", "CENTER", 80, 180 },
+	auPoint = { "CENTER", "UIParent", "CENTER", 0, 170 },
 	-- pbSource and pbAssign (the old own class list) are only read once by MigrateClassList in Group.lua
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",
 		SHAMAN = "Wisdom", MAGE = "Wisdom", WARLOCK = "Wisdom", DRUID = "Wisdom" },
@@ -328,6 +328,149 @@ end
 -- hide in combat. Lua only moves, shows or hides the overlay out of combat. A secure state driver
 -- hides it the moment combat starts (the icon may vanish or move mid-fight), and the next
 -- out-of-combat Sync brings it back. Create overlays out of combat only.
+-- Cards ----------------------------------------------------------------------------
+-- The one look for Lightbound's reminders (aura, Righteous Fury, Well-Rested, Well Fed), taken from the
+-- emblem: the spell icon as a round medallion in a gold ring, with the emblem's sunburst behind it
+-- turning very slowly and breathing, on a dark panel with a double gilt rule and gold studs. When the
+-- buff is gone the light fades and the icon greys. Quiet on purpose: no flicker, no swelling.
+-- Textures are drawn by tools/make_media.py.
+-- card:SetIcon(tex), card:SetTitle(text), card:SetStatus(text, urgent), card:SetFaded(on), card:Glow(on)
+local MEDIA = "Interface\\AddOns\\Lightbound\\Media\\"
+local CARD = {
+	panel = { 0.055, 0.043, 0.035, 0.92 },
+	gilt = { 0.67, 0.53, 0.24, 1 },
+	giltFaint = { 0.47, 0.37, 0.17, 0.9 },
+	light = { 1, 0.86, 0.45, 0.09 },
+	rays = { 1, 0.84, 0.43 },
+	raysFaded = { 0.75, 0.71, 0.63 },
+	title = { 1, 0.84, 0.38 },
+	status = { 0.92, 0.88, 0.78 },
+	urgent = { 1, 0.55, 0.42 },
+}
+
+local function SetGradient(tex, top, bottom)
+	-- newer clients take colour objects, older ones plain numbers
+	if CreateColor and pcall(tex.SetGradient, tex, "VERTICAL", CreateColor(unpack(bottom)), CreateColor(unpack(top))) then return end
+	pcall(tex.SetGradientAlpha, tex, "VERTICAL", bottom[1], bottom[2], bottom[3], bottom[4], top[1], top[2], top[3], top[4])
+end
+
+function ns.MakeCard(name, opts)
+	opts = opts or {}
+	local W, H, ICON = opts.width or 230, 56, 34
+	local c = CreateFrame("Frame", name, UIParent)
+	c:SetSize(W, H)
+	c:SetFrameStrata("LOW")
+	c:SetClipsChildren(true) -- the sunburst is larger than the card
+	c:Hide()
+
+	-- panel, light from above, double gilt rule
+	local outer = c:CreateTexture(nil, "BACKGROUND", nil, 0)
+	outer:SetAllPoints(); outer:SetColorTexture(unpack(CARD.gilt))
+	local panel = c:CreateTexture(nil, "BACKGROUND", nil, 1)
+	panel:SetPoint("TOPLEFT", 1, -1); panel:SetPoint("BOTTOMRIGHT", -1, 1)
+	panel:SetColorTexture(unpack(CARD.panel))
+	local light = c:CreateTexture(nil, "BACKGROUND", nil, 2)
+	light:SetPoint("TOPLEFT", 1, -1); light:SetPoint("TOPRIGHT", -1, -1); light:SetHeight(H * 0.6)
+	light:SetColorTexture(1, 1, 1, 1)
+	SetGradient(light, CARD.light, { CARD.light[1], CARD.light[2], CARD.light[3], 0 })
+	local function Rule(p1, p2, horizontal)
+		local t = c:CreateTexture(nil, "BACKGROUND", nil, 3)
+		t:SetColorTexture(unpack(CARD.giltFaint))
+		t:SetPoint(p1[1], p1[2], p1[3]); t:SetPoint(p2[1], p2[2], p2[3])
+		if horizontal then t:SetHeight(1) else t:SetWidth(1) end
+	end
+	Rule({ "TOPLEFT", 4, -4 }, { "TOPRIGHT", -4, -4 }, true)
+	Rule({ "BOTTOMLEFT", 4, 4 }, { "BOTTOMRIGHT", -4, 4 }, true)
+	Rule({ "TOPLEFT", 4, -4 }, { "BOTTOMLEFT", 4, 4 }, false)
+	Rule({ "TOPRIGHT", -4, -4 }, { "BOTTOMRIGHT", -4, 4 }, false)
+
+	-- the sunburst sits in a child frame so the card clips it
+	local glowFrame = CreateFrame("Frame", nil, c)
+	glowFrame:SetAllPoints()
+	local medal = CreateFrame("Frame", nil, c)
+	medal:SetSize(ICON + 6, ICON + 6); medal:SetPoint("LEFT", 9, 0)
+	medal:SetFrameLevel(glowFrame:GetFrameLevel() + 2)
+	local rays = glowFrame:CreateTexture(nil, "ARTWORK")
+	rays:SetTexture(MEDIA .. "Sunburst"); rays:SetBlendMode("ADD")
+	rays:SetSize(ICON * 2.3, ICON * 2.3); rays:SetPoint("CENTER", medal)
+	rays:SetVertexColor(unpack(CARD.rays)); rays:SetAlpha(0.55)
+	local turn = rays:CreateAnimationGroup()
+	turn:SetLooping("REPEAT")
+	local spin = turn:CreateAnimation("Rotation")
+	spin:SetDegrees(-360); spin:SetDuration(90) -- one turn in a minute and a half: you feel it more than see it
+	local breathe = rays:CreateAnimationGroup()
+	breathe:SetLooping("BOUNCE")
+	local a = breathe:CreateAnimation("Alpha")
+	a:SetFromAlpha(0.45); a:SetToAlpha(0.95); a:SetDuration(2.2); a:SetSmoothing("IN_OUT")
+
+	local icon = medal:CreateTexture(nil, "ARTWORK")
+	icon:SetSize(ICON, ICON); icon:SetPoint("CENTER")
+	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+	-- round icon: a mask texture where the client has them, else the older SetMask
+	local masked = false
+	if medal.CreateMaskTexture and icon.AddMaskTexture then
+		local ok, mask = pcall(medal.CreateMaskTexture, medal)
+		if ok and mask then
+			mask:SetTexture(MEDIA .. "RoundMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+			mask:SetAllPoints(icon)
+			masked = pcall(icon.AddMaskTexture, icon, mask)
+		end
+	end
+	if not masked and icon.SetMask then pcall(icon.SetMask, icon, MEDIA .. "RoundMask") end
+	local ring = medal:CreateTexture(nil, "OVERLAY")
+	ring:SetTexture(MEDIA .. "Ring"); ring:SetAllPoints()
+
+	for _, p in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+		local stud = medal:CreateTexture(nil, "OVERLAY")
+		stud:SetTexture(MEDIA .. "Stud"); stud:SetSize(9, 9)
+		stud:SetPoint(p, c, p, 0, 0)
+	end
+
+	local title = medal:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	-- Morpheus is the game's own storybook face (quest titles, books); ships with every client
+	if not title:SetFont("Fonts\\MORPHEUS.TTF", 16, "") then title:SetFontObject("GameFontNormalLarge") end
+	-- title and status as one block, centred on the medallion (title just above the middle)
+	title:SetPoint("BOTTOMLEFT", medal, "RIGHT", 11, 0); title:SetPoint("RIGHT", c, "RIGHT", -10, 0)
+	title:SetJustifyH("LEFT"); title:SetTextColor(unpack(CARD.title)); title:SetWordWrap(false)
+	title:SetShadowColor(0, 0, 0, 1); title:SetShadowOffset(1, -1)
+	local status = medal:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	status:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3); status:SetPoint("RIGHT", c, "RIGHT", -10, 0)
+	status:SetJustifyH("LEFT"); status:SetTextColor(unpack(CARD.status)); status:SetWordWrap(false)
+
+	local faded, glowing = false, false
+	local function Light()
+		rays:SetVertexColor(unpack(faded and CARD.raysFaded or CARD.rays))
+		if glowing and not faded then
+			if not turn:IsPlaying() then turn:Play() end
+			if not breathe:IsPlaying() then breathe:Play() end
+		else
+			breathe:Stop()
+			rays:SetAlpha(faded and 0.18 or 0.55)
+			if faded then turn:Pause() elseif glowing and not turn:IsPlaying() then turn:Play() end
+		end
+	end
+
+	function c:SetIcon(tex) icon:SetTexture(tex) end
+	function c:SetTitle(text) title:SetText(text or "") end
+	function c:SetStatus(text, urgent)
+		status:SetText(text or "")
+		status:SetTextColor(unpack(urgent and CARD.urgent or CARD.status))
+	end
+	-- the buff is gone: grey icon, the light all but out
+	function c:SetFaded(on)
+		faded = on and true or false
+		icon:SetDesaturated(faded)
+		Light()
+	end
+	function c:Glow(on)
+		glowing = on and true or false
+		if not glowing then turn:Stop() end
+		Light()
+	end
+	c.icon = icon
+	return c
+end
+
 function ns.CastOverlay(owner)
 	local b = CreateFrame("Button", nil, UIParent, "SecureActionButtonTemplate, SecureHandlerStateTemplate")
 	b:RegisterForClicks("AnyDown", "AnyUp") -- the secure handler acts on the phase ActionButtonUseKeyDown picks
@@ -383,6 +526,21 @@ loader:SetScript("OnEvent", function(self, _, name)
 	local wf = ns.db.wfPoint
 	if wf and wf[1] == "CENTER" and wf[3] == "CENTER" and wf[4] == 70 and wf[5] == 260 then
 		ns.db.wfPoint = CopyTable(ns.defaults.wfPoint)
+	end
+	-- v4.4: aura and Righteous Fury became cards too; the four cards stack above the proc and
+	-- Judgement icons (those sit at y 110). Only frames still at an old default move, so frames you
+	-- placed stay where they are. (The second set is from 4.4 test builds.)
+	local OLD = {
+		rfPoint = { { 0, 180 }, { 0, 160 } }, auPoint = { { 80, 180 }, { 0, 100 } },
+		wrPoint = { { 0, 260 }, { 0, 280 } }, wfPoint = { { 0, 200 }, { 0, 220 } },
+	}
+	for key, spots in pairs(OLD) do
+		local p = ns.db[key]
+		for _, xy in ipairs(spots) do
+			if type(p) == "table" and p[1] == "CENTER" and p[3] == "CENTER" and p[4] == xy[1] and p[5] == xy[2] then
+				ns.db[key] = CopyTable(ns.defaults[key])
+			end
+		end
 	end
 	if ns.db.pbSource == "PallyPower" then ns.db.pbSource = "Group" end -- v2.4 setting
 	self:UnregisterEvent("ADDON_LOADED")
