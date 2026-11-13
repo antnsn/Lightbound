@@ -14,3 +14,6 @@ ignore:
   - .claude
   - .gitignore
   - CURSEFORGE.md
+  - .beads
+  - AGENTS.md
+  - CLAUDE.md
