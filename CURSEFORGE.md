@@ -11,10 +11,10 @@ Lightbound buffs your party and raid with a single key, sorts out who blesses wh
   - Shift-click to set blessings for individual players.
   - Auto-assign takes talents (Improved Might/Wisdom) and ranks into account.
   - The leader and assists can edit everyone, and other paladins can edit their own row.
-- **Tank guard.** Never Blessing of Salvation on a tank. Marked tanks, raid main tanks and assists get another blessing instead (Might for warriors and druids, Kings otherwise, per class, set under your row in the Blessings window). The tank list is shared between Lightbound paladins.
+- **Tank guard.** Never Blessing of Salvation on a tank. Marked tanks, raid main tanks and assists get another blessing instead (Might for warriors and druids, Kings otherwise, per class, set under your row in the Blessings window). The group leader's tank list is shared with the other Lightbound paladins.
 - **Judgement assignments.** Who keeps Wisdom, Light, Crusader or Justice on the boss. Set in the Blessings window and shared with the other paladins. In combat, one icon per assigned Judgement shows whether it's on your target, with a sound when yours is missing.
 - **Raid overview.** Every class you bless, with how many are missing it and the shortest time left. Click a row to bless the whole class.
-- **Blessing requests.** When someone whispers "kings pls", "bom" or just "buff", a row with their name appears. Click it to bless them.
+- **Blessing requests.** When someone whispers a short request like "kings pls", "bom" or "buff?", a row with their name appears. Click it to bless them.
 
 ## Cleanse, cooldowns and Divine Intervention
 - **Cleanse grid.** Decursive-style: one small cell per group member (and pet), coloured and iconed when they carry a Poison, Disease or Magic debuff you can remove. Click a cell to cleanse. Cells follow joins and leaves even in combat. Out-of-range players are dimmed. Switch to a list of afflicted units if you prefer. A cleanse key casts on the unit under your mouse (a cell, the list, any raid frame) or your target, in combat too.
@@ -34,7 +34,7 @@ Lightbound buffs your party and raid with a single key, sorts out who blesses wh
 - **Well-Rested** and **Well Fed** warnings before they run out, so you keep the levelling bonuses on Forever
 
 ## Quality of life
-- Buys Symbol of Kings and Symbol of Divinity automatically at vendors, and warns when you run low
+- Buys Symbol of Kings and Symbol of Divinity automatically at vendors (keeping a little gold and checking bag space), and warns when you run low
 - Click the Righteous Fury, aura or blessing icons to cast that spell (out of combat)
 - Classic WoW-style options window (`/lb`), minimap button and addon compartment entry; shift-click the minimap button to unlock the frames
 - Every frame can be moved, snapped to a grid, and resized with the mouse wheel while unlocked

@@ -237,7 +237,9 @@ end
 -- "Label        < Value >" selector. Left-click next, right-click previous.
 local function Cycle(page, y, label, values, get, set, note, labelColor)
 	local text = Font(page, 14, labelColor or C.text)
-	text:SetPoint("TOPLEFT", 0, y - 5)
+	-- with a note, the label sits higher and the note goes under it (beside the button a long
+	-- note ran into the label); the row keeps its height so full pages don't grow
+	text:SetPoint("TOPLEFT", 0, note and y or (y - 5))
 	text:SetText(label)
 	local b = Button(page, "", 190, 26)
 	b:SetPoint("TOPRIGHT", page, "TOPRIGHT", 0, y)
@@ -245,8 +247,10 @@ local function Cycle(page, y, label, values, get, set, note, labelColor)
 	local noteText
 	if note then
 		noteText = Font(page, 12, C.dim)
-		noteText:SetPoint("RIGHT", b, "LEFT", -10, 0)
-		noteText:SetJustifyH("RIGHT")
+		noteText:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -3)
+		noteText:SetWidth(CONTENT_W - 200) -- up to the button; a second anchor would fight the TOPLEFT
+		noteText:SetJustifyH("LEFT")
+		noteText:SetWordWrap(false)
 	end
 	b.Sync = function(self)
 		self:SetLabel(Hex(C.dim) .. "<|r   " .. (get() or "None") .. "   " .. Hex(C.dim) .. ">|r")
@@ -405,7 +409,10 @@ local function BuildKey()
 	-- who gets what lives in the Blessings window only; this page is about the key itself
 	local rb = Button(p, "Open blessings", 150, 26, true)
 	rb:SetPoint("TOPLEFT", 0, p.y)
-	rb:SetScript("OnClick", function() win:Hide(); if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end end)
+	rb:SetScript("OnClick", function()
+		win:Hide()
+		if ns.OpenRaidWindow then ns.OpenRaidWindow() elseif ns.ToggleRaidWindow then ns.ToggleRaidWindow() end
+	end)
 	p:Add(40)
 	p:Add(select(2, DBToggle(p, 0, p.y, W, "pbEnabled", "Buff the group with one key", nil,
 		function() ns.ApplyPartyBuffKey() end)) + 10)
@@ -567,7 +574,9 @@ local function Build()
 	local hint = Font(footer, 12, C.dim)
 	hint:SetPoint("LEFT", reset, "RIGHT", 14, 0)
 	hint:SetText("Unlock shows every frame so you can drag it into place.")
-	move:SetScript("OnClick", function() ns.ToggleMove(); win.Sync() end)
+	-- remember whether this button unlocked the frames: closing the options relocks only those,
+	-- not frames unlocked with /lb move
+	move:SetScript("OnClick", function() ns.ToggleMove(); win.unlockedHere = ns.unlocked; win.Sync() end)
 
 	win.Sync = function()
 		for _, c in ipairs(controls) do c:Sync() end
@@ -579,7 +588,8 @@ local function Build()
 	end)
 	win:SetScript("OnHide", function()
 		for _, b in ipairs(capturers) do if b.capturing then b.Stop() end end
-		if ns.unlocked and not InCombatLockdown() then ns.ToggleMove() end
+		if win.unlockedHere and ns.unlocked and not InCombatLockdown() then ns.ToggleMove() end
+		win.unlockedHere = nil
 	end)
 end
 

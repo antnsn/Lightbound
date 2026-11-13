@@ -35,7 +35,7 @@ More in [screenshots/](screenshots).
   - The leader and assists can edit every row. Everyone else can edit their own row, or anyone who opts in.
   - Shows Lay on Hands and Divine Intervention cooldowns, Symbol of Kings counts, and Improved Might/Wisdom talents, which auto-assign takes into account.
 - **Raid overview.** One row per class you bless, showing how many are missing it and the shortest time left. Click a row to bless that class.
-- **Tank guard.** Never Blessing of Salvation on a tank: marked tanks, raid main tanks and assists get another blessing instead (Might for warriors and druids, Kings otherwise, per class, set on the line under your row in the Blessings window). The tank list is shared between Lightbound paladins.
+- **Tank guard.** Never Blessing of Salvation on a tank: marked tanks, raid main tanks and assists get another blessing instead (Might for warriors and druids, Kings otherwise, per class, set on the line under your row in the Blessings window). The group leader's tank list is shared with the other Lightbound paladins.
 
 **Warnings and trackers**
 - Righteous Fury missing while grouped (party, raid, open world)
@@ -51,8 +51,8 @@ More in [screenshots/](screenshots).
 - Paladin cooldowns: every paladin's Blessing of Protection, Freedom and Sacrifice, Divine Shield and Divine Protection (plus your own Forbearance), shared between Lightbound users
 
 **Quality of life**
-- Buys Symbol of Kings and Symbol of Divinity automatically at vendors, and warns when you run low
-- Blessing requests: when a group member whispers "kings pls", "bom" or just "buff", a row with their name appears; click it to bless them. Rows vanish once they're blessed or after a minute
+- Buys Symbol of Kings and Symbol of Divinity automatically at vendors (keeping a little gold and checking bag space), and warns when you run low
+- Blessing requests: when a group member whispers a short request like "kings pls", "bom" or "buff?", a row with their name appears; click it to bless them. Rows vanish once they're blessed or after a minute
 - **Divine Intervention picker.** In raids, a short list of healers; click one to cast Divine Intervention on them, in combat too. Shift-click pins a preferred target. The cast is announced in raid chat (raid warning for leaders and assists).
 - **Resurrection announce.** "Resurrecting <name>" in party or raid chat when Redemption lands, optionally whispered to the target.
 - Click the Righteous Fury, aura or blessing icons to cast that spell (out of combat)

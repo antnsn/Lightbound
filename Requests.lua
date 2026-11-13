@@ -31,15 +31,40 @@ local SAMPLE = {
 	{ name = "Jaina", class = "MAGE", key = "Salvation", spell = "Blessing of Salvation", known = false, age = 41 },
 }
 
+-- Words that may stand next to a blessing name in a bare ask ("might me", "kings again")
+local FILLER = {
+	me = true, on = true, u = true, you = true, i = true, again = true, too = true, ["and"] = true,
+	["or"] = true, plus = true, pala = true, pally = true, paladin = true, hi = true, hey = true,
+	ty = true, thx = true, thanks = true,
+}
+local ASK_WORDS = { pls = true, plz = true, please = true, plez = true, pliz = true, plox = true, pl = true }
+local ASK_PHRASES = { "can i", "can u", "can you", "could i", "could you", "may i", "need", "bless me", "buff me" }
+local MAX_BARE, MAX_ASK = 4, 8
+
 -- Blessing key named in the text, "*" for a plain buff/bless request, nil when it isn't one.
+-- A request is short: either only blessing names and filler ("kings", "might?", "bom me"), or a
+-- blessing name with an explicit ask ("kings pls", "can i get wis"). Chat like "I might be late"
+-- or "light the fire" isn't one.
 local function Parse(text)
-	local generic = false
-	for word in text:lower():gmatch("%a+") do
-		local key = WORDS[word]
-		if key == "*" then generic = true
-		elseif key then return key end
+	local lower = text:lower()
+	local key, generic, n, bare, ask = nil, false, 0, true, false
+	for word in lower:gmatch("%a+") do
+		n = n + 1
+		local k = WORDS[word]
+		if k == "*" then generic = true
+		elseif k then key = key or k
+		elseif ASK_WORDS[word] then ask = true
+		elseif not FILLER[word] then bare = false end
 	end
-	return generic and "*" or nil
+	if not key and not generic then return nil end
+	if not ask then
+		local padded = " " .. lower:gsub("[^%a]+", " ") .. " "
+		for _, ph in ipairs(ASK_PHRASES) do
+			if padded:find(" " .. ph .. " ", 1, true) then ask = true break end
+		end
+	end
+	if not ((bare and n <= MAX_BARE) or (ask and n <= MAX_ASK)) then return nil end
+	return key or "*"
 end
 
 local function SpellTexture(name)
@@ -159,7 +184,7 @@ local function Prune()
 end
 
 local function Configure(row)
-	if InCombatLockdown() then return end
+	if InCombatLockdown() then return end -- attributes are locked; every macro line carries [nocombat]
 	local r = row.data
 	if r and not ns.unlocked then
 		-- re-resolve at click time: the tank list or the fallback may have changed since they asked
@@ -178,8 +203,9 @@ local function Configure(row)
 			row:SetAttribute("macrotext", ("/cast [nocombat,@%s,help] %s"):format(r.unit, r.spell))
 		else
 			-- not in the group: target by name. Clear first so a failed /target leaves no target and
-			-- the cast does nothing, instead of blessing whoever was targeted before.
-			row:SetAttribute("macrotext", ("/cleartarget\n/target %s\n/cast [nocombat,@target,help] %s\n/targetlasttarget"):format(r.name, r.spell))
+			-- the cast does nothing, instead of blessing whoever was targeted before. Every line is
+			-- [nocombat]: the macro stays on the row into combat, and a click there mustn't retarget.
+			row:SetAttribute("macrotext", ("/cleartarget [nocombat]\n/target [nocombat] %s\n/cast [nocombat,@target,help] %s\n/targetlasttarget [nocombat]"):format(r.name, r.spell))
 		end
 		pending, pendingAt = r, GetTime()
 	else
@@ -209,14 +235,14 @@ local function Draw()
 			else tag = "|cffffd100" .. r.key .. "|r" end
 			row.state:SetText(("%s  |cff999999%ds|r"):format(tag, r.age or math.floor(now - r.at)))
 			row:SetAlpha((combat or not r.known) and 0.55 or 1)
-			row:EnableMouse(not ns.unlocked)
-			if not combat then row:Show() end
+			-- rows are secure buttons: mouse state only changes out of combat ("action failed" otherwise)
+			if not combat then row:EnableMouse(not ns.unlocked); row:Show() end
 		else
 			-- Empty rows stay shown at alpha 0 (rows can't be shown in combat, so every slot is
 			-- prepared out of combat; a request that arrives mid-fight is drawn into one of them).
 			row:SetAlpha(0)
-			row:EnableMouse(false)
 			if not combat then
+				row:EnableMouse(false)
 				if i <= ns.db.rqRows or (ns.unlocked and i <= #list) then row:Show() else row:Hide() end
 			end
 		end
@@ -315,9 +341,12 @@ function M:Init()
 	end
 	ev:SetScript("OnEvent", function(_, event, a1, a2, a3, _, _, _, _, _, _, _, _, a12)
 		if event == "PLAYER_REGEN_DISABLED" then
-			-- Lockdown is already on when this fires, so nothing protected can be done here. Rows are
-			-- prepared by Draw() out of combat and the click macro carries [nocombat], so a stale
-			-- target can't fire. Just redraw the states.
+			-- Fires just before lockdown. If it isn't on yet, drop the click actions so the rows are
+			-- inert; otherwise the [nocombat] on every macro line does it. Then redraw the states.
+			if not InCombatLockdown() then
+				for _, row in ipairs(rows) do row:SetAttribute("type", nil) end
+				pending = nil
+			end
 			Draw()
 			return
 		elseif event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_FAILED_QUIET" or event == "UNIT_SPELLCAST_INTERRUPTED" then
@@ -329,11 +358,7 @@ function M:Init()
 			-- only a cast right after the click counts; a later cast of the same blessing on someone else doesn't
 			if pending and GetTime() - (pendingAt or 0) > PENDING_WINDOW then pending = nil end
 			if pending and name == pending.spell then
-				if pending.guid then
-					local recent = ns.PB.recent
-					recent[pending.guid] = recent[pending.guid] or {}
-					recent[pending.guid][pending.key] = GetTime()
-				end
+				if pending.guid then ns.PB.Remember(pending.guid, pending.key, false) end
 				local _, i = Find(pending.name)
 				if i then table.remove(requests, i) end
 			end

@@ -106,8 +106,10 @@ local function MakeTimer(cfg)
 			had, missing, reminded = true, false, false
 			if b.expires and b.expires > 0 then expires = b.expires end
 			if b.icon then buffIcon = b.icon end
-		elseif not hidden then
-			-- gone (in combat the buff may just be left out of the list: keep the last expiry)
+		elseif not hidden and GetTime() >= quietUntil then
+			-- gone (in combat the buff may just be left out of the list: keep the last expiry;
+			-- right after a loading screen the list can be empty: wait for quietUntil, and keep
+			-- warned so the "min left" alert doesn't fire again)
 			-- (when following, Remind gives the warning instead)
 			if had and cfg.sayGone and ns.db[key] and not ns.db[key .. "Keep"] and not UnitIsDeadOrGhost("player") then
 				Notify(cfg.label .. " is gone")
@@ -123,7 +125,10 @@ local function MakeTimer(cfg)
 		f:RegisterUnitEvent("UNIT_AURA", "player")
 		f:RegisterEvent("PLAYER_UNGHOST"); f:RegisterEvent("PLAYER_ALIVE")
 		f:SetScript("OnEvent", function(_, event)
-			if event == "PLAYER_ENTERING_WORLD" then quietUntil = GetTime() + 5 end
+			if event == "PLAYER_ENTERING_WORLD" then
+				quietUntil = GetTime() + 5
+				C_Timer.After(5.5, function() M:Update() end) -- look again once the quiet time is over
+			end
 			M:Update()
 		end)
 
@@ -172,6 +177,7 @@ local function MakeTimer(cfg)
 		end)
 		C_Timer.NewTicker(5, Check)
 		quietUntil = GetTime() + 5
+		C_Timer.After(5.5, function() M:Update() end)
 		M:Update()
 	end
 

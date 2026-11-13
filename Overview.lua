@@ -9,6 +9,8 @@ ns.modules[#ns.modules + 1] = M
 local ROW_W, ROW_H = 230, 24
 local frame, title, rows = nil, nil, {}
 local pending -- { spell, key, class, guid, greater } of the last click
+local isSecret = ns.IsSecret -- see Core.lua
+local function Clean(v) if isSecret(v) or v == nil then return nil end return v end
 
 local function Format(s)
 	if s == math.huge then return "on" end
@@ -53,10 +55,12 @@ local function Scan()
 				c.total = c.total + 1
 				local unitKey = key
 				local left = PB.TimeLeft(unit, unitKey)
-				local guid = UnitGUID(unit)
+				local guid = Clean(UnitGUID(unit)) -- can be secret in combat; never a table key then
 				if left == nil then
-					local t = guid and PB.recent[guid] and PB.recent[guid][unitKey]
-					left = t and (PB.GREATER_DURATION - (now - t)) or 0
+					-- same guess as PartyBuff's Plan: 15 min if a Greater is what gets cast here, else 5
+					-- the cast's own duration is recorded; the guess is only for an older record
+					local greater = db.pbGreater and raid and greaterOK and haveSymbol and PB.SpellKnown("Greater Blessing of " .. unitKey)
+					left = PB.CastLeft(guid, unitKey, greater and PB.GREATER_DURATION or PB.DURATION, now) or 0
 				end
 				if left <= 0 then c.missing = c.missing + 1
 				elseif left <= refresh then c.low = c.low + 1 end
@@ -94,7 +98,7 @@ local function Configure(row)
 		row:SetAttribute("type", "macro")
 		row:SetAttribute("macrotext", ("/cast [nocombat,@%s] %s"):format(c.unit, c.spell))
 		-- single-target casts record the key actually cast on that unit (a tank's substitute differs from c.key)
-		pending = { spell = c.spell, key = c.greater and c.key or (c.unitKey or c.key), class = c.class, guid = UnitGUID(c.unit), greater = c.greater }
+		pending = { spell = c.spell, key = c.greater and c.key or (c.unitKey or c.key), class = c.class, guid = Clean(UnitGUID(c.unit)), greater = c.greater }
 	else
 		row:SetAttribute("type", nil)
 		pending = nil
@@ -127,9 +131,14 @@ local function Draw(list)
 				row.state:SetText("|cff9fdf9f" .. Format(c.minLeft) .. "|r")
 				row.bg:SetColorTexture(0.165, 0.125, 0.082, 0.8)
 			end
+			row:SetAlpha(1)
 			if not combat then row:Show() end
 		elseif not combat then
 			row:Hide()
+		else
+			-- secure button: can't be hidden in combat, so blank it (the macro is [nocombat])
+			row.icon:SetTexture(nil); row.name:SetText(""); row.state:SetText("")
+			row:SetAlpha(0)
 		end
 	end
 	if not combat then
@@ -228,20 +237,16 @@ function M:Init()
 		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local name = ns.SpellName(spellID)
 			if pending and name == pending.spell then
-				local now, recent = GetTime(), ns.PB.recent
+				local now, Remember = GetTime(), ns.PB.Remember
 				if pending.greater then
 					-- a Greater Blessing lands on everyone of that class
 					for _, unit in ipairs(ns.PB.Units()) do
 						local _, class = UnitClass(unit)
-						local guid = UnitGUID(unit)
-						if class == pending.class and guid then
-							recent[guid] = recent[guid] or {}
-							recent[guid][pending.key] = now
-						end
+						local guid = Clean(UnitGUID(unit))
+						if class == pending.class and guid then Remember(guid, pending.key, true, now) end
 					end
 				elseif pending.guid then
-					recent[pending.guid] = recent[pending.guid] or {}
-					recent[pending.guid][pending.key] = now
+					Remember(pending.guid, pending.key, false, now)
 				end
 			end
 			pending = nil

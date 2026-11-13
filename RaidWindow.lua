@@ -193,6 +193,14 @@ local CD_NAME = { "Lay on Hands", "Divine Intervention", "Blessing of Protection
 
 -- Per-player popup: members of one class, click to set their own blessing from this paladin
 local popup
+local function ClassMembers(class)
+	local members = {}
+	for _, unit in ipairs(ns.PB.Units()) do
+		local _, c = UnitClass(unit)
+		if c == class then members[#members + 1] = GetUnitName(unit, true) or UnitName(unit) end
+	end
+	return members
+end
 local function ShowPopup(anchor, pally, cid)
 	local UI = ns.UI
 	if not popup then
@@ -202,18 +210,30 @@ local function ShowPopup(anchor, pally, cid)
 		UI.Box(popup, 0.97)
 		popup.title = UI.Font(popup, 12, UI.C.accent); popup.title:SetPoint("TOPLEFT", 8, -6)
 		popup.lines = {}
-		popup:SetScript("OnHide", function(self) self.pally = nil end)
+		local close = CreateFrame("Button", nil, popup, "UIPanelCloseButton")
+		close:SetSize(22, 22); close:SetPoint("TOPRIGHT", 2, 2)
+		close:SetScript("OnClick", function() popup:Hide() end)
+		-- Escape closes just the popup; other keys go on to the game. Propagation can't be changed
+		-- in combat, so there Escape falls through and closes the Blessings window (and the popup).
+		popup:EnableKeyboard(true)
+		popup:SetScript("OnKeyDown", function(self, key)
+			if InCombatLockdown() then return end
+			if key == "ESCAPE" then self:SetPropagateKeyboardInput(false); self:Hide()
+			else self:SetPropagateKeyboardInput(true) end
+		end)
+		popup:SetScript("OnHide", function(self)
+			self.pally, self.row, self.sig = nil, nil, nil
+			-- back to passing keys on, after this Escape is done (so it doesn't close the window too)
+			C_Timer.After(0, function() if not InCombatLockdown() then self:SetPropagateKeyboardInput(true) end end)
+		end)
 	end
 	local class = ns.PP_CLASS_NAME[cid]
-	local members = {}
-	for _, unit in ipairs(ns.PB.Units()) do
-		local _, c = UnitClass(unit)
-		if c == class then members[#members + 1] = GetUnitName(unit, true) or UnitName(unit) end
-	end
+	local members = ClassMembers(class)
 	if #members == 0 then ns.Print("nobody of that class in the group.") return end
 	local cname = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[class]) or class
 	popup.title:SetText(pally .. " > " .. cname .. " (per player)")
-	popup.pally, popup.cid = pally, cid
+	-- the row it belongs to and who was listed: Refresh closes it when either changes
+	popup.pally, popup.cid, popup.row, popup.sig = pally, cid, anchor:GetParent(), table.concat(members, ",")
 	for i, member in ipairs(members) do
 		local line = popup.lines[i]
 		if not line then
@@ -236,9 +256,10 @@ local function ShowPopup(anchor, pally, cid)
 		line:Show()
 	end
 	for i = #members + 1, #popup.lines do popup.lines[i]:Hide() end
-	popup:SetSize(232, 28 + #members * 24)
+	popup:SetSize(232, 30 + #members * 24)
 	popup:ClearAllPoints()
 	popup:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
+	if not InCombatLockdown() then popup:SetPropagateKeyboardInput(true) end
 	popup:Show()
 end
 
@@ -469,6 +490,14 @@ function Refresh()
 		r:Show()
 	end
 	for i = #list + 1, #rows do rows[i]:Hide() end
+	-- the per-player popup must not stay over a cell that now shows another paladin or class roster
+	if popup and popup:IsShown() then
+		local row = popup.row
+		if not row or not row:IsShown() or row.pally ~= popup.pally
+			or table.concat(ClassMembers(ns.PP_CLASS_NAME[popup.cid]), ",") ~= popup.sig then
+			popup:Hide()
+		end
+	end
 	win:SetHeight(COLS_Y + 34 + y + FOOTER_H + 10)
 	win.open.Sync()
 	local status
@@ -578,4 +607,11 @@ function ns.ToggleRaidWindow()
 	if not ns.db or not ns.UI then return end
 	if not win then Build() end
 	if win:IsShown() then win:Hide() else win:Show() end
+end
+
+-- Always open (the options' "Open blessings" button must not close an open window)
+function ns.OpenRaidWindow()
+	if not ns.db or not ns.UI then return end
+	if not win then Build() end
+	win:Show(); win:Raise()
 end

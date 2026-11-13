@@ -91,7 +91,7 @@ local function OnUpdate()
 	if left <= 5 then timeText:SetTextColor(1, 0.25, 0.25) else timeText:SetTextColor(1, 1, 1) end
 end
 
-local function UpdateNow()
+local function UpdateNow(entering)
 	if not f then return end
 	local db = ns.db
 
@@ -122,7 +122,8 @@ local function UpdateNow()
 	if seal then
 		f:SetAlpha(1); f:Show()
 		f:SetScript("OnUpdate", OnUpdate); OnUpdate()
-	elseif db.sealEmptyInCombat and InCombatLockdown() and not UnitIsDeadOrGhost("player") then
+	-- entering: PLAYER_REGEN_DISABLED fires before InCombatLockdown() is true; show the empty bar at the pull
+	elseif db.sealEmptyInCombat and (entering or ns.InCombat()) and not UnitIsDeadOrGhost("player") then
 		bar:SetMinMaxValues(0, 1); bar:SetValue(0)
 		icon:SetDesaturated(true)
 		nameText:SetText("")
@@ -133,10 +134,10 @@ local function UpdateNow()
 	end
 end
 
-function M:Update()
+function M:Update(entering)
 	if updating then return end
 	updating = true
-	local ok, err = pcall(UpdateNow)
+	local ok, err = pcall(UpdateNow, entering)
 	updating = false
 	if not ok then geterrorhandler()(err) end
 end
@@ -191,7 +192,7 @@ function M:Init()
 		elseif event == "PLAYER_DEAD" then
 			ClearSeal()
 		end
-		M:Update()
+		M:Update(event == "PLAYER_REGEN_DISABLED")
 	end)
 	M:Update()
 end

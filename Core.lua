@@ -61,12 +61,23 @@ local isSecret = IsSecret
 local RESTRICTED = _G.PP_RESTRICTED or "<restricted>"
 
 local function Clean(v)
-	if v == nil or isSecret(v) then return nil end
+	-- secret first: even comparing a secret value with nil is not allowed
+	if isSecret(v) or v == nil then return nil end
 	return v
 end
 
--- Reads the player's buffs. Returns a table name -> { icon, duration, expires }
+-- True in combat. InCombatLockdown() only turns true after PLAYER_REGEN_DISABLED has fired, so
+-- also ask UnitAffectingCombat (true already then); a secret answer counts as in combat.
+function ns.InCombat()
+	if InCombatLockdown() then return true end
+	local ok, c = pcall(UnitAffectingCombat, "player")
+	if not ok or isSecret(c) then return true end
+	return c and true or false
+end
+
+-- Reads the player's buffs. Returns a table name -> { icon, duration, expires, mine }
 -- and a flag that is true when some auras were hidden from addons (combat restrictions).
+-- mine: true if you cast it, false if someone else did, nil if the source can't be read.
 function ns.ReadPlayerBuffs()
 	local buffs, hidden = {}, false
 	for i = 1, 40 do
@@ -77,10 +88,16 @@ function ns.ReadPlayerBuffs()
 		if not name or name == RESTRICTED then
 			hidden = true
 		else
-			buffs[name] = { icon = Clean(a.icon), duration = Clean(a.duration), expires = Clean(a.expirationTime) }
+			local src = Clean(a.sourceUnit)
+			local mine
+			if src then mine = (src == "player") end
+			-- the same name from two casters: keep yours
+			if not (buffs[name] and buffs[name].mine) then
+				buffs[name] = { icon = Clean(a.icon), duration = Clean(a.duration), expires = Clean(a.expirationTime), mine = mine }
+			end
 		end
 	end
-	if InCombatLockdown() then
+	if ns.InCombat() then
 		-- seals and some self buffs can simply be left out of the list in combat
 		hidden = true
 	end

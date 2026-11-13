@@ -2,6 +2,11 @@
 # Push a tag to release: "v3.9" = release, "v3.9-beta" = beta, "v3.9-alpha" = alpha.
 package-as: Lightbound
 
+# CurseForge shows this file as the changelog of each release (newest version on top)
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
 ignore:
   - README.md
   - Lightbound.png

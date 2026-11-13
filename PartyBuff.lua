@@ -18,9 +18,26 @@ local btn, status, statusIcon, statusText, owner
 local planned            -- { unit, guid, name, spell, key } for the next press
 local pending            -- what the last press tried to cast
 local recent = {}        -- guid -> { [key] = time cast }; fallback when auras can't be read
+local recentLen = {}     -- guid -> { [key] = duration of that cast }: a Greater stays 15 min even
+                         -- after the last Symbol of Kings is used up
+-- records a landed blessing; `greater` = it was a Greater Blessing
+local function Remember(guid, key, greater, at)
+	if not guid then return end
+	recent[guid] = recent[guid] or {}
+	recent[guid][key] = at or GetTime()
+	recentLen[guid] = recentLen[guid] or {}
+	recentLen[guid][key] = greater and GREATER_DURATION or DURATION
+end
+-- seconds left from the last cast, or nil; `guess` is the duration to assume for an old record
+local function CastLeft(guid, key, guess, now)
+	local t = guid and recent[guid] and recent[guid][key]
+	if not t then return nil end
+	local len = recentLen[guid] and recentLen[guid][key] or guess
+	return len - ((now or GetTime()) - t)
+end
 local isSecret = ns.IsSecret -- see Core.lua
 
-local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
+local function Clean(v) if isSecret(v) or v == nil then return nil end return v end -- secret check first
 
 local function SpellKnown(name)
 	local ok, info = pcall(function()
@@ -103,7 +120,7 @@ end
 
 -- shared with the raid overview (Overview.lua)
 ns.PB = { Units = Units, TimeLeft = TimeLeft, InRange = InRange, SpellKnown = SpellKnown, Assignment = Assignment,
-	recent = recent, DURATION = DURATION, GREATER_DURATION = GREATER_DURATION, SYMBOL = SYMBOL_OF_KINGS }
+	recent = recent, Remember = Remember, CastLeft = CastLeft, DURATION = DURATION, GREATER_DURATION = GREATER_DURATION, SYMBOL = SYMBOL_OF_KINGS }
 
 local unlearned -- a blessing from your row that Plan skipped because you don't know it yet
 
@@ -157,12 +174,11 @@ local function Plan(why)
 					note(unit, "out of range for " .. spell)
 				else
 					local left = TimeLeft(unit, key)
-					local guid = UnitGUID(unit)
+					local guid = Clean(UnitGUID(unit)) -- can be secret in combat (/lb why); never a table key then
 					local how = "aura"
 					if left == nil then
 						how = "auras hidden, using last cast"
-						local t = guid and recent[guid] and recent[guid][key]
-						left = t and ((useGreater and GREATER_DURATION or DURATION) - (now - t)) or 0
+						left = CastLeft(guid, key, useGreater and GREATER_DURATION or DURATION, now) or 0
 					end
 					if left <= refresh then
 						note(unit, "NEXT: " .. spell .. " (" .. how .. ")")
@@ -245,10 +261,14 @@ function M:Init()
 	btn = CreateFrame("Button", BUTTON, UIParent, "SecureActionButtonTemplate")
 	btn:SetSize(1, 1)
 	btn:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -100, 100) -- off screen; used only through the key
-	btn:RegisterForClicks(GetCVarBool and GetCVarBool("ActionButtonUseKeyDown") and "AnyDown" or "AnyUp")
+	-- both phases, like ns.CastOverlay: the secure handler only acts on the one ActionButtonUseKeyDown
+	-- picks (read at click time), so changing that setting needs no /reload and nothing casts twice
+	btn:RegisterForClicks("AnyDown", "AnyUp")
 	btn:SetAttribute("checkselfcast", false)
 	btn:SetAttribute("checkfocuscast", false)
-	btn:SetScript("PreClick", function()
+	btn:SetScript("PreClick", function(_, _, down)
+		-- PreClick runs on both phases; only plan (and print) on the one that casts
+		if (down and true or false) ~= (GetCVarBool and GetCVarBool("ActionButtonUseKeyDown") or false) then return end
 		if InCombatLockdown() then return end
 		Configure()
 		pending = planned
@@ -293,8 +313,7 @@ function M:Init()
 		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local name = ns.SpellName(spellID)
 			if pending and name == pending.spell and pending.guid and pending.key ~= "Righteous Fury" and not pending.key:find(" Aura$") then
-				recent[pending.guid] = recent[pending.guid] or {}
-				recent[pending.guid][pending.key] = GetTime()
+				Remember(pending.guid, pending.key, pending.spell:find("^Greater") ~= nil)
 			end
 			pending = nil
 		elseif event == "PLAYER_REGEN_ENABLED" and M.keyPending then

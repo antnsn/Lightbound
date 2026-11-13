@@ -18,7 +18,6 @@ local function CleanName(v) v = Clean(v); if v == RESTRICTED then return nil end
 local RECKONING_ID, RECKONING_MAX, RECKONING_TIME = 20178, 4, 8
 local CONSECRATION_TIME = 8
 local HOLY_SHOCK_CD = 15   -- until the real cooldown has been read once
-local JUDGEMENT_TIME = 10  -- how long your Judgement is assumed to stay on the target when it can't be read
 local SIZE, GAP = 40, 6
 local ORDER = { "reck", "cons", "shock", "wisdom" }
 
@@ -35,7 +34,7 @@ local consSet         -- cast time the countdown sweep was last set with
 local hs = { readyAt = 0, dur = 0, at = 0 } -- Holy Shock cooldown, read or inferred from your cast
 local hsOnCd = false
 local hsSet           -- start time the sweep was last set with
-local lastJudge       -- { at, wisdom } from your last Judgement cast; cleared on target change
+local reckCache       -- { n, icon, hidden } from the last full aura read; cleared on UNIT_AURA
 local manaSounded = false
 
 local function Known(spell)
@@ -109,7 +108,7 @@ end
 
 -- Reckoning -----------------------------------------------------------------------
 -- stacks, icon of the Reckoning proc; nil when it's not up. Third value true = some buffs were unreadable.
-local function ReadReckoning()
+local function ReadReckoningNow()
 	if C_UnitAuras.GetPlayerAuraBySpellID then
 		local ok, a = pcall(C_UnitAuras.GetPlayerAuraBySpellID, RECKONING_ID)
 		if ok and type(a) == "table" then return Stacks(a), Clean(a.icon) end
@@ -126,6 +125,15 @@ local function ReadReckoning()
 		if not name then hidden = true end
 	end
 	return nil, nil, hidden
+end
+
+-- cached until your auras change, so the ticker doesn't walk 40 buffs every 0.2 s
+local function ReadReckoning()
+	if not reckCache then
+		local n, icon, hidden = ReadReckoningNow()
+		reckCache = { n = n, icon = icon, hidden = hidden }
+	end
+	return reckCache.n, reckCache.icon, reckCache.hidden
 end
 
 local function UpdateReckoning(db)
@@ -230,8 +238,12 @@ local function HasWisdom()
 		if not name then unreadable = true
 		elseif name == "Judgement of Wisdom" then return true end
 	end
+	-- hidden, or in combat simply left out: your last Judgement on this mob (Combat.lua, per target and
+	-- restarted by your spells on it). Out of combat a readable list without it means it's gone.
+	if not unreadable and not InCombatLockdown() then return false end
+	local name = ns.LastJudgement and ns.LastJudgement()
+	if name then return name == "Judgement of Wisdom" end
 	if not unreadable then return false end
-	if lastJudge and GetTime() - lastJudge.at < JUDGEMENT_TIME then return lastJudge.wisdom end
 	return nil
 end
 
@@ -250,7 +262,8 @@ local function UpdateMana(db)
 	Set(b, Texture("Seal of Wisdom"), "", "WISDOM")
 	Bright(b, true)
 	b.glow:Show()
-	if not b:IsShown() then
+	-- keyed on the pulse, not on being shown: the unlock preview leaves it shown with the pulse stopped
+	if not b.pulse:IsPlaying() then
 		b:Show(); b.pulse:Play()
 		if not manaSounded and db.trManaSound then Sound("RAID_WARNING", 8959) end
 		manaSounded = true
@@ -314,10 +327,12 @@ function M:Init()
 	ev:RegisterUnitEvent("UNIT_AURA", "player", "target")
 	ev:RegisterUnitEvent("UNIT_POWER_UPDATE", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-	ev:SetScript("OnEvent", function(_, event, _, _, spellID)
-		if event == "PLAYER_TARGET_CHANGED" then
-			lastJudge = nil
-		elseif event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
+	ev:SetScript("OnEvent", function(_, event, unit, _, spellID)
+		if (event == "UNIT_AURA" and (isSecret(unit) or unit == "player")) or event == "PLAYER_ENTERING_WORLD"
+			or event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
+			reckCache = nil -- combat changes what can be read, too
+		end
+		if event == "PLAYER_REGEN_DISABLED" or event == "PLAYER_REGEN_ENABLED" then
 			manaSounded = false
 		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local name = ns.SpellName(spellID)
@@ -327,12 +342,6 @@ function M:Init()
 			elseif name == "Holy Shock" then
 				hs.dur = hs.dur > 0 and hs.dur or HOLY_SHOCK_CD
 				hs.at, hs.readyAt = now, now + hs.dur
-			elseif name == "Judgement" then
-				-- which seal went out, in case the debuff is hidden in combat
-				local buffs = ns.ReadPlayerBuffs()
-				local seal
-				for bname in pairs(buffs) do if bname:find("^Seal of") then seal = bname end end
-				lastJudge = { at = now, wisdom = seal and (seal == "Seal of Wisdom") or nil }
 			end
 		end
 		M:Update()

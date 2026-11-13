@@ -35,6 +35,13 @@ local function Normalize(name)
 	if realm and realm ~= (GetNormalizedRealmName and GetNormalizedRealmName()) then return name end
 	return base
 end
+-- when a paladin's name was last seen (see Forget further down)
+local function Seen(name)
+	if not name or isSecret(name) then return end
+	ns.db.lastSeen = ns.db.lastSeen or {}
+	ns.db.lastSeen[name] = time()
+end
+ns.MarkSeen = Seen
 local function Wire(name) return (name:gsub(" ", "_")) end
 local function Unwire(name) return (name:gsub("_", " ")) end
 
@@ -130,7 +137,7 @@ local function Cooldowns(old)
 				local ok, cd = pcall(C_Spell.GetSpellCooldown, id)
 				local start = ok and type(cd) == "table" and cd.startTime
 				local d = ok and type(cd) == "table" and cd.duration
-				if start == nil or isSecret(start) or isSecret(d) then
+				if isSecret(start) or isSecret(d) or start == nil then
 					-- hidden in combat: keep what we knew
 					readyAt = old and old[i] and old[i].readyAt or 0
 					dur = old and old[i] and old[i].dur or 0
@@ -198,11 +205,20 @@ local function Channel()
 	return "PARTY"
 end
 
+local LOCKDOWN = Enum and Enum.SendAddonMessageResult and Enum.SendAddonMessageResult.AddOnMessageLockdown or 11
+
 local function Flush()
 	local item = table.remove(queue, 1)
 	if not item then sending = false return end
 	if IsInGroup() then
-		pcall(C_ChatInfo.SendAddonMessage, item.prefix or PREFIX, item.msg, item.target and "WHISPER" or Channel(), item.target)
+		local ok, result = pcall(C_ChatInfo.SendAddonMessage, item.prefix or PREFIX, item.msg,
+			item.target and "WHISPER" or Channel(), item.target)
+		-- addon messages can be locked for a while (encounters): hold the queue, don't drop it
+		if ok and not isSecret(result) and result == LOCKDOWN then
+			table.insert(queue, 1, item)
+			C_Timer.After(2, Flush)
+			return
+		end
 	end
 	C_Timer.After(0.15, Flush)
 end
@@ -446,6 +462,7 @@ local function Parse(sender, msg)
 		p = { bless = known, ranks = ranks, talents = talents, auras = p and p.auras or {},
 			symbols = p and p.symbols or 0, freeassign = p and p.freeassign, cd = p and p.cd, seen = GetTime() }
 		ns.pallys[sender] = p
+		Seen(sender)
 		a[sender] = Digits(assign, NUM_CLASSES)
 		Changed()
 		return
@@ -498,9 +515,9 @@ local function Parse(sender, msg)
 	if msg:find("^NASSIGN ") then
 		for pn, c, tn, sk in msg:sub(9):gmatch("([^@]*) ([^@]*) ([^@]*) ([^@]*)") do
 			pn = Normalize(Unwire(pn))
-			if not allowed(pn) then return end
 			c, sk = tonumber(c), tonumber(sk)
-			if validClass(c) and validBless(sk) then
+			-- a disallowed entry skips just itself, not the rest of the batch
+			if allowed(pn) and validClass(c) and validBless(sk) then
 				normal[pn] = normal[pn] or {}
 				normal[pn][c] = normal[pn][c] or {}
 				normal[pn][c][Unwire(tn)] = (sk and sk > 0) and sk or nil
@@ -574,19 +591,84 @@ local function MigrateClassList()
 end
 
 local function Migrate()
-	-- one-time copy of your own PallyPower assignments, so removing PallyPower keeps them
-	if ns.db.ppMigrated then return end
+	-- one-time copy of your own PallyPower assignments, so removing PallyPower keeps them.
+	-- Once per paladin (the saved settings are account-wide), like MigrateClassList.
+	local db = ns.db
+	local me = Me()
+	if type(db.ppMigrated) ~= "table" then db.ppMigrated = {} end -- was a single flag
+	if db.ppMigrated[me] then return end
 	local pa, pau = _G.PallyPower_Assignments, _G.PallyPower_AuraAssignments
 	if type(pa) ~= "table" then return end
-	local me = Me()
-	ns.db.assign = ns.db.assign or {}
-	ns.db.auraAssign = ns.db.auraAssign or {}
+	db.assign = db.assign or {}
+	db.auraAssign = db.auraAssign or {}
+	local copied = false
+	-- never over a row or aura you already have (the old shared flag may have hidden a done copy)
 	if type(pa[me]) == "table" then
-		ns.db.assign[me] = {}
-		for i = 1, NUM_CLASSES do ns.db.assign[me][i] = tonumber(pa[me][i]) or 0 end
+		if not db.assign[me] then
+			db.assign[me] = {}
+			for i = 1, NUM_CLASSES do db.assign[me][i] = tonumber(pa[me][i]) or 0 end
+		end
+		copied = true
 	end
-	if type(pau) == "table" and tonumber(pau[me]) then ns.db.auraAssign[me] = tonumber(pau[me]) end
-	ns.db.ppMigrated = true
+	if type(pau) == "table" and tonumber(pau[me]) then
+		if not db.auraAssign[me] then db.auraAssign[me] = tonumber(pau[me]) end
+		copied = true
+	end
+	-- nothing for you in PallyPower yet: try again on a later login
+	if copied then db.ppMigrated[me] = true end
+end
+
+-- Saved rows of paladins you stopped grouping with pile up forever (settings are account-wide):
+-- forget a name after FORGET_DAYS without seeing it. Your own characters are never forgotten.
+local FORGET_DAYS = 30
+
+local rosterPending = false
+local function ScanRoster()
+	-- names can be secret in combat; this is bookkeeping, so it waits for combat to end
+	if InCombatLockdown() then C_Timer.After(10, ScanRoster) return end
+	rosterPending = false
+	if not IsInGroup() then return end
+	local n = GetNumGroupMembers() or 0
+	for i = 1, n do
+		local unit = IsInRaid() and ("raid" .. i) or (i == 1 and "player" or ("party" .. (i - 1)))
+		local ok, full = pcall(GetUnitName, unit, true)
+		if ok and full and not isSecret(full) then Seen(Normalize(full)) end
+	end
+end
+-- roster changes come in bursts: one scan a few seconds after the last batch, never skipped
+local function MarkRoster()
+	if rosterPending then return end
+	rosterPending = true
+	C_Timer.After(5, ScanRoster)
+end
+
+local function Forget()
+	local db = ns.db
+	db.own = type(db.own) == "table" and db.own or {}
+	db.own[Me()] = true
+	-- characters that logged in since 4.3 already carry a per-character flag: those are yours too
+	for _, flags in ipairs({ db.rowFromClassList, db.ppMigrated }) do
+		if type(flags) == "table" then for name in pairs(flags) do db.own[name] = true end end
+	end
+	db.lastSeen = db.lastSeen or {}
+	Seen(Me())
+	local cutoff = time() - FORGET_DAYS * 86400
+	for _, key in ipairs({ "assign", "normalAssign", "auraAssign", "judgeAssign" }) do
+		local t = db[key]
+		if type(t) == "table" then
+			for name in pairs(t) do
+				if not db.own[name] then
+					local at = db.lastSeen[name]
+					-- rows saved before 4.3.1 have no date: start their clock now instead of dropping them
+					if not at then db.lastSeen[name] = time()
+					elseif at < cutoff then t[name] = nil end
+				end
+			end
+		end
+	end
+	for name, at in pairs(db.lastSeen) do
+		if at < cutoff and not db.own[name] then db.lastSeen[name] = nil end
+	end
 end
 
 function M:Update() end
@@ -614,6 +696,7 @@ function M:Init()
 			passive = loaded and loaded("PallyPower") and true or false
 			Migrate()
 			MigrateClassList()
+			Forget()
 			ScanSelf()
 		elseif event == "CHAT_MSG_ADDON" then
 			if passive or (prefix ~= PREFIX and prefix ~= LB_PREFIX) then return end
@@ -628,12 +711,13 @@ function M:Init()
 			if not IsInGroup() then
 				for k in pairs(ns.pallys) do if k ~= Me() then ns.pallys[k] = nil end end
 			end
+			if IsInGroup() then MarkRoster() end
 			if ns.RaidWindowRefresh then ns.RaidWindowRefresh() end
 		elseif event == "SPELLS_CHANGED" then
 			SoonSelf(3)
 		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local spellID = select(3, prefix, message, _, source) -- (unit, castGUID, spellID)
-			if spellID == nil or isSecret(spellID) then return end
+			if isSecret(spellID) or spellID == nil then return end
 			for _, ids in ipairs(CD_SPELLS) do
 				for _, id in ipairs(ids) do if spellID == id then SoonSelf(1.5) end end
 			end

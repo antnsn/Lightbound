@@ -3,8 +3,8 @@
 -- raid's main tank or main assist, or has the tank role. When the blessing picked for a tank is
 -- Salvation, the per-class fallback (tankBless) is cast instead, as a normal blessing so the rest
 -- of the class keeps Salvation; Greater Salvation is also held back for a class that has a tank.
--- The tank list is shared between Lightbound paladins over LBND: "TANKS name,name" (leader and
--- assists send, everyone receives; long lists continue with "TANKS +name,name").
+-- The tank list is shared between Lightbound paladins over LBND: "TANKS name,name" (the group
+-- leader sends, everyone receives; long lists continue with "TANKS +name,name").
 local _, ns = ...
 
 local M = {}
@@ -106,17 +106,33 @@ function ns.TankAssignment(unit, class, key, greaterOK)
 end
 
 -- Sharing (LBND) -----------------------------------------------------------------------
-local function CanShare() return IsInGroup() and ns.IsGroupLeader and ns.IsGroupLeader(ns.MyName()) or false end
+-- Only the real group leader sends: with assists sending too, two of them flip-flop each other's
+-- lists. (ns.IsGroupLeader in Group.lua also counts assists, so the check is done here.)
+local function RealLeader(name)
+	if not name then return false end
+	local u = (name == ns.MyName()) and "player" or (ns.UnitForName and ns.UnitForName(name))
+	if not u then return false end
+	local ok, v = pcall(UnitIsGroupLeader, u)
+	return ok and Clean(v) and true or false
+end
+local function CanShare() return IsInGroup() and RealLeader(ns.MyName()) end
 
--- "TANKS a,b,c" replaces the list; "TANKS +d,e" adds to it (long lists go in pieces)
-local function Broadcast(target)
+-- "TANKS a,b,c" replaces the list; "TANKS +d,e" adds to it (long lists go in pieces);
+-- "TANKS -" clears it. An empty list is only sent as "-" after the user cleared it: a leader who
+-- relies on roles would otherwise wipe everyone's manual list on every sync.
+local function Broadcast(target, cleared)
 	if not ns.SendLB or not CanShare() then return end
+	local names = Sorted()
+	if #names == 0 then
+		if cleared then ns.SendLB("TANKS -", target) end
+		return
+	end
 	local chunk, first = "", true
 	local function flush()
 		ns.SendLB("TANKS " .. (first and "" or "+") .. chunk, target)
 		chunk, first = "", false
 	end
-	for _, name in ipairs(Sorted()) do
+	for _, name in ipairs(names) do
 		if #chunk > 0 and #chunk + #name + 1 > MSG_MAX then flush() end
 		chunk = chunk .. (#chunk > 0 and "," or "") .. name
 	end
@@ -125,13 +141,16 @@ end
 
 local function Receive(sender, rest)
 	if sender == ns.MyName() then return end
-	if not (ns.UnitForName and ns.UnitForName(sender)) or not ns.IsGroupLeader(sender) then return end
+	if not RealLeader(sender) then return end
+	rest = strtrim(rest or "")
+	local clear = rest == "-"
+	if rest == "" then return end -- older versions sent an empty replace list on every sync
 	local before = table.concat(Sorted(), ",")
 	local add = rest:sub(1, 1) == "+"
 	if add then rest = rest:sub(2) end
 	local l = List()
 	if not add then for k in pairs(l) do l[k] = nil end end
-	for name in rest:gmatch("[^,%s]+") do l[name] = true end
+	if not clear then for name in rest:gmatch("[^,%s]+") do l[name] = true end end
 	Dirty()
 	local names = Sorted()
 	if table.concat(names, ",") ~= before then
@@ -145,13 +164,13 @@ function ns.SetTank(name, on)
 	name = Normalize(name)
 	if not name or name == "" then return end
 	List()[name] = on and true or nil
-	Dirty(); Broadcast(); ns.Refresh()
+	Dirty(); Broadcast(nil, not on); ns.Refresh() -- removing the last name is a deliberate clear
 end
 
 function ns.ClearTanks()
 	local l = List()
 	for k in pairs(l) do l[k] = nil end
-	Dirty(); Broadcast(); ns.Refresh()
+	Dirty(); Broadcast(nil, true); ns.Refresh()
 end
 
 -- /lb tank <name>: add or remove a tank; no name lists them
@@ -177,7 +196,7 @@ function ns.ToggleTank(arg)
 	local on = not Listed(name)
 	ns.SetTank(name, on)
 	ns.Print(name .. (on and " is now a tank." or " is no longer a tank.")
-		.. ((IsInGroup() and not CanShare()) and " Only the leader or an assist shares the list." or ""))
+		.. ((IsInGroup() and not CanShare()) and " Only the group leader shares the list." or ""))
 end
 
 -- What a tank of `class` gets from you instead of Salvation ("None" skips them), and a step
@@ -270,7 +289,7 @@ local function RefreshList()
 	if listScroll:GetVerticalScroll() > max then listScroll:SetVerticalScroll(max) end
 	local text
 	if IsInGroup() and not CanShare() then
-		text = "Only the leader or an assist shares the list with the other Lightbound paladins; your changes stay on your side."
+		text = "Only the group leader shares the list with the other Lightbound paladins; your changes stay on your side."
 	else
 		text = "Shared with the other Lightbound paladins in the group. Names stay on the list when people leave."
 	end

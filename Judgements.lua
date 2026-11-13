@@ -253,7 +253,8 @@ function M:Update()
 	-- your own Judgement can be left out of a partly hidden list: trust your last cast for a while
 	-- (only when the seal you judged with matches your assignment)
 	-- (Combat.lua follows it per mob, restarted by your spells on it)
-	if mine and hidden and not found[DEBUFF[mine]] and ns.LastJudgement then
+	-- in combat it can also just be missing from a readable list (this frame only shows in combat)
+	if mine and (hidden or InCombatLockdown()) and not found[DEBUFF[mine]] and ns.LastJudgement then
 		local name, left = ns.LastJudgement()
 		if name == DEBUFF[mine] then found[name] = left end
 	end

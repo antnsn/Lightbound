@@ -8,7 +8,9 @@ local M = {}
 ns.modules[#ns.modules + 1] = M
 
 local isSecret = ns.IsSecret -- see Core.lua
+local RESTRICTED = _G.PP_RESTRICTED or "<restricted>" -- placeholder the client returns for hidden aura names
 local function Clean(v) if v == nil or isSecret(v) then return nil end return v end
+local function CleanName(v) v = Clean(v); if v == RESTRICTED then return nil end return v end
 
 local EXORCISM_TYPES = { Undead = true, Demon = true, Untoter = true, ["Dämon"] = true, ["Mort-vivant"] = true, ["Démon"] = true }
 local JUDGEMENT_TIME = 10 -- fallback length when the debuff can't be read
@@ -19,6 +21,9 @@ local procFrame, procIcons, judgeFrame
 local shown = {}        -- spell -> true while its proc icon is up (for the sound)
 local lastJudge         -- { name, icon, at } from your last Judgement cast; cleared on target change
                         -- (the target's GUID is a secret value in combat, so it can't be compared)
+-- your own casts of the proc spells, for when combat hides their cooldown
+local PROC_CD = { ["Hammer of Wrath"] = 6, ["Exorcism"] = 15 } -- until the real cooldown has been read once
+local castAt = {}       -- spell -> GetTime() of your last cast
 
 local function Known(spell)
 	local ok, info = pcall(function()
@@ -47,10 +52,18 @@ local function Ready(spell)
 	end)
 	if not ok or isSecret(usable) or not usable then return false end
 	local ok2, cd = pcall(C_Spell.GetSpellCooldown, spell)
-	if ok2 and type(cd) == "table" then
-		local start, dur = Clean(cd.startTime), Clean(cd.duration)
-		if start and dur and dur > 1.5 and start + dur - GetTime() > 0.3 then return false end
+	local start, dur
+	if ok2 and type(cd) == "table" then start, dur = Clean(cd.startTime), Clean(cd.duration) end
+	if start and dur then
+		if dur > 1.5 then
+			if PROC_CD[spell] then PROC_CD[spell] = dur end -- learn the real length out of combat
+			if start + dur - GetTime() > 0.3 then return false end
+		end
+		return true
 	end
+	-- hidden in combat: go by your own last cast
+	local at, len = castAt[spell], PROC_CD[spell]
+	if at and len and at + len - GetTime() > 0.3 then return false end
 	return true
 end
 
@@ -100,7 +113,7 @@ local function UpdateProcs()
 			icon:Hide()
 		end
 	end
-	shown = now
+	shown = ns.unlocked and {} or now -- the preview doesn't count, so a real proc after locking still sounds
 	procFrame:SetShown(#list > 0)
 end
 
@@ -112,7 +125,7 @@ local function ReadJudgement()
 		local ok, a = pcall(C_UnitAuras.GetAuraDataByIndex, "target", i, "HARMFUL|PLAYER")
 		if not ok then unreadable = true break end
 		if not a then break end
-		local name = Clean(a.name)
+		local name = CleanName(a.name)
 		if not name then
 			unreadable = true
 		elseif name:find("^Judgement of") then
@@ -165,7 +178,9 @@ local function UpdateJudgement()
 	end
 	if not db.judgeEnabled or not HostileTarget() or not Known("Judgement") then f:Hide() return end
 	local name, icon, left, unreadable = ReadJudgement()
-	if not name and unreadable and lastJudge then
+	-- hidden, or in combat simply left out of the list: trust your last cast for its lifetime.
+	-- Out of combat the list is complete, so a readable list without it means it expired.
+	if not name and (unreadable or InCombatLockdown()) and lastJudge then
 		local l = JUDGEMENT_TIME - (GetTime() - lastJudge.at)
 		if l > 0 then name, icon, left = lastJudge.name, lastJudge.icon, l end
 	end
@@ -271,7 +286,10 @@ function M:Init()
 			lastJudge = key and judged[key] or nil
 		elseif event == "UNIT_SPELLCAST_SENT" then
 			sentAt, sentTo = GetTime(), Clean(a2)
-		elseif event == "UNIT_SPELLCAST_SUCCEEDED" and HostileTarget() and AtTarget(false) then
+		elseif event == "UNIT_SPELLCAST_SUCCEEDED" and PROC_CD[ns.SpellName(a3) or ""] then
+			castAt[ns.SpellName(a3)] = GetTime() -- any target: the cooldown runs either way
+		end
+		if event == "UNIT_SPELLCAST_SUCCEEDED" and HostileTarget() and AtTarget(false) then
 			local name = ns.SpellName(a3)
 			if name == "Judgement" then
 				-- remember which Judgement went out, in case the debuff is hidden in combat. The seal
@@ -280,6 +298,9 @@ function M:Init()
 				local seal = ns.ActiveSeal and ns.ActiveSeal()
 				if seal and LASTING[seal] then
 					lastJudge = { name = (seal:gsub("^Seal of ", "Judgement of ")), icon = Texture(seal), at = GetTime() }
+				elseif seal and lastJudge and GetTime() - lastJudge.at < JUDGEMENT_TIME then
+					-- a one-hit Judgement (Righteousness...) leaves the old debuff and, being harmful, restarts it
+					lastJudge.at = GetTime()
 				else
 					lastJudge = nil
 				end
@@ -296,6 +317,8 @@ function M:Init()
 	end)
 	-- target health and cooldowns change all the time; a light ticker keeps the icons honest
 	C_Timer.NewTicker(0.2, function()
+		local db = ns.db
+		if not ns.unlocked and not db.procEnabled and not db.judgeEnabled then return end -- both off: events still hide them
 		if procFrame:IsShown() or judgeFrame:IsShown() or HostileTarget() then M:Update() end
 	end)
 end

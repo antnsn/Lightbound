@@ -45,7 +45,10 @@ end
 local function Read()
 	local buffs, hidden = ns.ReadPlayerBuffs()
 	for _, k in ipairs(ns.AURAS) do
-		if buffs[k .. " Aura"] then active = k return end
+		-- only your own aura counts (another paladin's aura on you is theirs); an unreadable
+		-- source (combat) still counts, so you don't get a false NO AURA mid-fight
+		local b = buffs[k .. " Aura"]
+		if b and b.mine ~= false then active = k return end
 	end
 	if not hidden then active = false end -- hidden in combat: keep the last known state
 end

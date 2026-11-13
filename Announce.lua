@@ -59,10 +59,23 @@ local function Channel()
 	if IsInGroup() then return "PARTY" end
 end
 
+-- Chat can be locked for addons (boss fights and the like): SendChatMessage is then dropped,
+-- so say it on your own screen instead of losing it.
+local function ChatLocked()
+	if not (C_ChatInfo and C_ChatInfo.InChatMessagingLockdown) then return false end
+	local ok, locked = pcall(C_ChatInfo.InChatMessagingLockdown)
+	return ok and (ns.IsSecret(locked) or locked == true)
+end
+
+local function Local(msg)
+	ns.Print(msg .. " |cff999999(chat is locked right now, only you see this)|r")
+end
+
 -- raid warning only when allowed (leader/assist in a raid) and asked for
 local function Announce(msg, warning)
 	local chan = Channel()
 	if not chan then return end
+	if ChatLocked() then Local(msg) return end
 	if warning and chan == "RAID" and (UnitIsGroupLeader("player") or UnitIsGroupAssistant("player")) then
 		chan = "RAID_WARNING"
 	end
@@ -92,7 +105,7 @@ local function OnRez()
 	if lastRez[key] and now - lastRez[key] < 3 then return end -- recast on the same person: say it once
 	lastRez[key] = now
 	if db.rezAnnounce then Announce("Resurrecting " .. (target and Short(target) or "a fallen ally"), false) end
-	if db.rezWhisper and target then pcall(SendChatMessage, "Resurrecting you", "WHISPER", nil, target) end
+	if db.rezWhisper and target and not ChatLocked() then pcall(SendChatMessage, "Resurrecting you", "WHISPER", nil, target) end
 end
 
 -- Picker ----------------------------------------------------------------------------
