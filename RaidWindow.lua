@@ -7,7 +7,7 @@
 -- Salvation, shown only under the classes you give Salvation.
 local _, ns = ...
 
-local win, rows, header = nil, {}, {}
+local win, rows = nil, {}
 local NAME_W, CELL, GAP, ROW_H, PAD = 170, 30, 6, 40, 20
 local TANK_H, TANK_CELL = 30, 24 -- the tank line under your row
 local CELL_Y = -(ROW_H - CELL) / 2 -- cells sit in the top ROW_H of a row (your row is taller)
@@ -477,11 +477,11 @@ function Refresh()
 				local c = ns.cds and ns.cds[name] and ns.cds[name].bop
 				info = c and { known = true, readyAt = c.readyAt, dur = c.dur } or nil
 			end
-			local t = CdText(info)
-			cd.text:SetText(t or "")
-			cd.icon:SetDesaturated(not t or not t:find("ok"))
-			cd:SetAlpha(t and 1 or 0.3)
-			cd.tip = t and (t:find("ok") and "ready" or ("ready in " .. t)) or "not known or not synced"
+			local cdText = CdText(info)
+			cd.text:SetText(cdText or "")
+			cd.icon:SetDesaturated(not cdText or not cdText:find("ok"))
+			cd:SetAlpha(cdText and 1 or 0.3)
+			cd.tip = cdText and (cdText:find("ok") and "ready" or ("ready in " .. cdText)) or "not known or not synced"
 		end
 		local aidx = ns.GetAuraAssign(name)
 		r.aura:Set(aidx > 0 and AuraTexture(aidx) or nil, edit)
@@ -551,7 +551,6 @@ local function Build()
 		local t = cols:CreateTexture(nil, "ARTWORK")
 		t:SetSize(22, 22); t:SetPoint("LEFT", ColX(cid) + (CELL - 22) / 2, 0)
 		t:SetTexture(CLASS_ICON[cid]); t:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-		header[cid] = t
 	end
 	local al = UI.Font(cols, 12, C.dim); al:SetPoint("LEFT", AURA_X - 2, 0); al:SetText("AURA")
 	local jt = cols:CreateTexture(nil, "ARTWORK") -- Judgement column: the icon, the word doesn't fit
@@ -567,10 +566,10 @@ local function Build()
 	footer:SetPoint("BOTTOMLEFT"); footer:SetPoint("BOTTOMRIGHT"); footer:SetHeight(FOOTER_H)
 	UI.Tex(footer, "BACKGROUND", C.header):SetAllPoints()
 	local fl = UI.Tex(footer, "ARTWORK", C.border); fl:SetPoint("TOPLEFT"); fl:SetPoint("TOPRIGHT"); fl:SetHeight(1)
-	local function Tip(widget, title, text)
+	local function Tip(widget, heading, text)
 		widget:HookScript("OnEnter", function(self)
 			GameTooltip:SetOwner(self, "ANCHOR_TOP")
-			GameTooltip:AddLine(title)
+			GameTooltip:AddLine(heading)
 			if text then GameTooltip:AddLine(text, 1, 1, 1) end
 			GameTooltip:Show()
 		end)

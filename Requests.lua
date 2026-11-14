@@ -125,7 +125,8 @@ local function Add(name, guid, key)
 		local ok, _, c = pcall(GetPlayerInfoByGUID, guid)
 		if ok then class = Clean(c) end
 	end
-	local asked, note = key, nil
+	local asked = key
+	local note
 	key, note = Resolve(key, unit, class)
 	if not key then
 		if note then ns.Print(("%s asks for Salvation: %s"):format(name, note)) end

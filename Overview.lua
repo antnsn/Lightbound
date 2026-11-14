@@ -106,7 +106,6 @@ local function Configure(row)
 end
 
 local function Draw(list)
-	local UI = ns.UI
 	local combat = InCombatLockdown()
 	title:SetText(("Blessings  |cff999999%d symbols|r"):format(SymbolCount()))
 	if SymbolCount() < (ns.db.reagentWarn or 0) then
@@ -169,7 +168,6 @@ function M:Update()
 end
 
 function M:Init()
-	local UI = ns.UI
 	frame = CreateFrame("Frame", "LightboundOverviewFrame", UIParent, "BackdropTemplate")
 	frame:SetSize(ROW_W, 100)
 	frame:SetFrameStrata("LOW")

@@ -71,7 +71,7 @@ local function ClearSeal() seal = nil end
 -- Judgement tracking (Combat.lua, Judgements.lua) uses it to know which Judgement went out.
 function ns.ActiveSeal()
 	if seal and seal.expires > GetTime() then return seal.name end
-	local buffs, hidden = ns.ReadPlayerBuffs()
+	local buffs = ns.ReadPlayerBuffs()
 	for name in pairs(buffs) do if IsSeal(name) then return name end end
 	return nil
 end
