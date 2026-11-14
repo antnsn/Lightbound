@@ -94,7 +94,7 @@ end
 local function OnRez()
 	local db = ns.db
 	local now, target = GetTime(), nil
-	if sent and sent.spell == REZ and now - sent.at < 15 then target = sent.name end -- 10 s cast
+	if sent and sent.spell == REZ and now - sent.at < 3 then target = sent.name end
 	sent = nil
 	if not target and UnitExists("target") and UnitIsPlayer("target") and UnitIsFriend("player", "target")
 		and Safe(UnitIsDeadOrGhost, "target") then
@@ -281,6 +281,7 @@ function M:Init()
 		ev:RegisterEvent(e)
 	end
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
+	ev:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", "player")
@@ -289,11 +290,15 @@ function M:Init()
 			local name = ns.SpellName(a4)
 			if name == DI or name == REZ then sent = { spell = name, name = Clean(a2), at = GetTime() } end
 			return
+		elseif event == "UNIT_SPELLCAST_START" then -- unit, castGUID, spellID
+			-- Redemption is said when the cast starts, so the target knows to wait for it
+			if ns.SpellName(a3) == REZ then OnRez() end
+			return
 		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then -- unit, castGUID, spellID
 			local name = ns.SpellName(a3)
 			-- spell ID hidden (combat) right after a picker click: it was Divine Intervention
 			if name == nil and lastDITarget and GetTime() - lastDITarget.at < 1 then name = DI end
-			if name == DI then OnDI() elseif name == REZ then OnRez() end
+			if name == DI then OnDI() end
 			return
 		elseif event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_INTERRUPTED" then
 			local name = ns.SpellName(a3)
@@ -320,6 +325,6 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "diWarning", "Use raid warning when you're leader or assist")) + 6)
 	p:Add(UI.Section(p, p.y, "Redemption") + 6)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "rezAnnounce", "Announce resurrections",
-		"\"Resurrecting <name>\" in party or raid chat when Redemption lands.")) + 6)
+		"\"Resurrecting <name>\" in party or raid chat when you start casting Redemption.")) + 6)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "rezWhisper", "Also whisper the target")) + 6)
 end

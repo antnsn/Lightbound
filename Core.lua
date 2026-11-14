@@ -619,6 +619,7 @@ SlashCmdList.LIGHTBOUND = function(msg)
 		if arg and arg ~= "" then
 			db.clIgnore[arg] = not db.clIgnore[arg] or nil
 			Print("cleanse list " .. (db.clIgnore[arg] and "ignores" or "no longer ignores") .. " '" .. arg .. "'")
+			if ns.CleanseIgnoreChanged then ns.CleanseIgnoreChanged() end
 		else
 			local names = {}
 			for n in pairs(db.clIgnore) do names[#names + 1] = n end
