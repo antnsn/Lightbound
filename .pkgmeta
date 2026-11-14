@@ -18,3 +18,4 @@ ignore:
   - AGENTS.md
   - CLAUDE.md
   - tools
+  - .luacheckrc

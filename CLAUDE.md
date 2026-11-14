@@ -52,13 +52,16 @@ bd close <id>         # Complete work
 
 ## Build & Test
 
-_Add your build and test commands here_
+No build step: WoW loads the .lua files directly. Before committing, from this folder:
 
 ```bash
-# Example:
-# npm install
-# npm test
+for f in *.lua; do luac5.1 -p "$f" || echo "syntax error: $f"; done   # syntax (Lua 5.1, like the client)
+~/.luarocks/bin/luacheck .                                            # lint, config in .luacheckrc
 ```
+
+A new name in luacheck's "undefined variable" warnings is either a typo or WoW API not yet in
+`.luacheckrc`: check it exists on Forever (many legacy globals are gone there) before adding it.
+Nothing replaces an in-game test: `/reload` for changed files, a client restart for new files.
 
 ## Architecture Overview
 
