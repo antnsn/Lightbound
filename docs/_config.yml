@@ -1,0 +1,47 @@
+title: Lightbound
+description: The all-in-one paladin addon for World of Warcraft Forever. How to use it, page by page.
+url: https://antnsn.github.io
+baseurl: /Lightbound
+
+theme: just-the-docs
+color_scheme: lightbound
+logo: https://raw.githubusercontent.com/antnsn/Lightbound/main/Lightbound.png
+favicon_ico: https://raw.githubusercontent.com/antnsn/Lightbound/main/Lightbound.png
+
+search_enabled: true
+heading_anchors: true
+back_to_top: true
+back_to_top_text: Back to top
+
+aux_links:
+  CurseForge:
+    - https://www.curseforge.com/wow/addons/lightbound
+  GitHub:
+    - https://github.com/antnsn/Lightbound
+aux_links_new_tab: true
+
+footer_content: Lightbound is a fan-made addon for World of Warcraft Forever. Not affiliated with Blizzard Entertainment.
+
+callouts:
+  note:
+    title: Note
+    color: yellow
+  warning:
+    title: Careful
+    color: red
+  tip:
+    title: Tip
+    color: green
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - .bundle
+
+# every page gets the theme layout (GitHub's own Pages build adds this implicitly; Jekyll 4 does not)
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default

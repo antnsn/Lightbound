@@ -11,17 +11,17 @@ Lightbound replaces PallyPower and speaks PallyPower's addon-message format (`PL
 ## Screenshots
 
 <p align="center">
-  <img src="screenshots/frames-unlocked.png" width="720" alt="All Lightbound frames unlocked: raid overview, aura and Righteous Fury warnings, procs, Well-Rested and Well Fed timers, seal bar">
+  <img src="docs/screenshots/frames-unlocked.png" width="720" alt="All Lightbound frames unlocked: raid overview, aura and Righteous Fury warnings, procs, Well-Rested and Well Fed timers, seal bar">
 </p>
 <p align="center">
-  <img src="screenshots/raid-blessings.png" width="720" alt="Raid blessings window: paladins against classes, aura and cooldowns">
+  <img src="docs/screenshots/raid-blessings.png" width="720" alt="Raid blessings window: paladins against classes, aura and cooldowns">
 </p>
 <p align="center">
-  <img src="screenshots/options-buff-key.png" width="360" alt="Buff key options">
-  <img src="screenshots/options-combat.png" width="360" alt="Combat options">
+  <img src="docs/screenshots/options-buff-key.png" width="360" alt="Buff key options">
+  <img src="docs/screenshots/options-combat.png" width="360" alt="Combat options">
 </p>
 
-More in [screenshots/](screenshots).
+More in [docs/screenshots/](docs/screenshots).
 
 ## Features
 

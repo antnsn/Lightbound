@@ -10,7 +10,7 @@ manual-changelog:
 ignore:
   - README.md
   - Lightbound.png
-  - screenshots
+  - docs
   - .claude
   - .gitignore
   - CURSEFORGE.md

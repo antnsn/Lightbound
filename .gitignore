@@ -8,3 +8,9 @@ Thumbs.db
 .dolt/
 *.db
 .beads-credential-key
+
+# docs site: local Bundler config and build output
+docs/.bundle/
+docs/_site/
+docs/vendor/
+docs/.jekyll-cache/

@@ -1,0 +1,33 @@
+// Small touches on top of the Lightbound colour scheme.
+
+// gilt rule under page titles, like the double rule on the in-game cards
+.main-content h1:first-of-type {
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #6b5426;
+  box-shadow: 0 3px 0 -2px #3a3125;
+}
+
+// screenshots: framed like a panel, never wider than the text
+.main-content img {
+  max-width: 100%;
+  border: 1px solid #3a3125;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+// the logo in the sidebar header
+.site-logo {
+  background-size: contain;
+  background-position: left center;
+}
+
+// key names: /lb, Shift-click
+.main-content code {
+  color: #f1e3c2;
+}
+
+// the comparison table on the home page
+.main-content td:not(:first-child),
+.main-content th:not(:first-child) {
+  text-align: center;
+}
