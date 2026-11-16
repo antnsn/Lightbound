@@ -122,13 +122,13 @@ local function Draw(list)
 			if cc then row.name:SetTextColor(cc.r, cc.g, cc.b) end
 			if c.missing > 0 then
 				row.state:SetText(("|cffff5555%d/%d missing|r"):format(c.missing, c.total))
-				row.bg:SetColorTexture(0.45, 0.08, 0.10, 0.55)
+				row.bg:SetColorTexture(unpack(ns.UI.C.rowBad))
 			elseif c.low > 0 then
 				row.state:SetText("|cffffd100" .. Format(c.minLeft) .. "|r")
-				row.bg:SetColorTexture(0.40, 0.30, 0.05, 0.5)
+				row.bg:SetColorTexture(unpack(ns.UI.C.rowWarn))
 			else
 				row.state:SetText("|cff9fdf9f" .. Format(c.minLeft) .. "|r")
-				row.bg:SetColorTexture(0.165, 0.125, 0.082, 0.8)
+				row.bg:SetColorTexture(unpack(ns.UI.C.row))
 			end
 			row:SetAlpha(1)
 			if not combat then row:Show() end
@@ -172,16 +172,9 @@ function M:Init()
 	frame:SetSize(ROW_W, 100)
 	frame:SetFrameStrata("LOW")
 	frame:Hide()
-	if ns.UI and ns.UI.Box then
-		ns.UI.Box(frame, 0.85)
-	else
-		local bg = frame:CreateTexture(nil, "BACKGROUND")
-		bg:SetAllPoints(); bg:SetColorTexture(0.075, 0.058, 0.042, 0.88)
-	end
-	title = frame:CreateFontString(nil, "OVERLAY")
-	title:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+	ns.UI.Box(frame, 0.85)
+	title = ns.UI.FrameTitle(frame)
 	title:SetPoint("TOPLEFT", 6, -4)
-	title:SetTextColor(1, 0.82, 0)
 	ns.MakeMovable(frame, "ovPoint")
 	ns.ApplyPoint(frame, "ovPoint")
 
@@ -197,10 +190,10 @@ function M:Init()
 		row.icon:SetSize(ROW_H - 4, ROW_H - 4); row.icon:SetPoint("LEFT", 2, 0)
 		row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 		row.name = row:CreateFontString(nil, "OVERLAY")
-		row.name:SetFont("Fonts\\ARIALN.TTF", 13, ""); row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+		ns.UI.SetFont(row.name, "narrow", 13); row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
 		row.state = row:CreateFontString(nil, "OVERLAY")
-		row.state:SetFont("Fonts\\ARIALN.TTF", 13, ""); row.state:SetPoint("RIGHT", -6, 0)
-		local hl = row:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints(); hl:SetColorTexture(1, 1, 1, 0.08)
+		ns.UI.SetFont(row.state, "narrow", 13); row.state:SetPoint("RIGHT", -6, 0)
+		ns.UI.Highlight(row)
 		row:SetScript("PreClick", function(self) Configure(self) end)
 		row:SetScript("OnEnter", function(self)
 			local c = self.data

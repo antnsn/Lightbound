@@ -3,126 +3,15 @@
 local addonName, ns = ...
 
 -- Style -----------------------------------------------------------------------------
--- Classic WoW look with a paladin touch: gold dialog frame on a dark background, the
--- dialog title plate, red panel buttons, gold check boxes, Friz Quadrata throughout and the
--- Lightbound emblem as a faint watermark.
-local FONT = "Fonts\\FRIZQT__.TTF"
-local TITLE_FONT = "Fonts\\FRIZQT__.TTF"
-local MEDIA = "Interface\\AddOns\\Lightbound\\Media\\"
-local C = {
-	bg = { 0, 0, 0, 0 },
-	side = { 0, 0, 0, 0.35 },
-	header = { 0, 0, 0, 0.30 },
-	border = { 0.55, 0.42, 0.20, 0.9 },
-	hover = { 0.30, 0.22, 0.10, 1 },
-	selected = { 0.30, 0.195, 0.085, 1 },
-	text = { 0.95, 0.92, 0.85 },
-	dim = { 0.72, 0.68, 0.60 },
-	accent = { 1.00, 0.82, 0.00 },
-	track = { 0.24, 0.18, 0.11, 1 },
-	button = { 0.10, 0.075, 0.05, 1 },
-}
+-- Colours, fonts and textures come from the active skin (Skin.lua); ns.UI holds the helpers.
+local UI = ns.UI
+local C, TEX, MEDIA = UI.C, UI.TEX, UI.MEDIA
+local Tex, Font, Title, Hex, Skin, Watermark = UI.Tex, UI.Font, UI.Title, UI.Hex, UI.Skin, UI.Watermark
 local WIDTH, HEIGHT, SIDE_W, HEADER_H, FOOTER_H = 760, 620, 170, 44, 52
 local PAD = 26
 local CONTENT_W = WIDTH - SIDE_W - PAD * 2
 
 local win, controls, pages, navButtons = nil, {}, {}, {}
-
-local function Tex(parent, layer, color)
-	local t = parent:CreateTexture(nil, layer)
-	t:SetColorTexture(color[1], color[2], color[3], color[4] or 1)
-	return t
-end
-
-local function Border(frame, color)
-	color = color or C.border
-	local function edge(p1, p2, w, h)
-		local t = Tex(frame, "BORDER", color)
-		t:SetPoint(p1); t:SetPoint(p2)
-		if w then t:SetWidth(w) end
-		if h then t:SetHeight(h) end
-	end
-	edge("TOPLEFT", "TOPRIGHT", nil, 1)
-	edge("BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)
-	edge("TOPLEFT", "BOTTOMLEFT", 1, nil)
-	edge("TOPRIGHT", "BOTTOMRIGHT", 1, nil)
-end
-
-local function Font(parent, size, color, layer)
-	local fs = parent:CreateFontString(nil, layer or "OVERLAY")
-	fs:SetFont(FONT, size - 1, "")
-	fs:SetTextColor(color[1], color[2], color[3])
-	fs:SetJustifyH("LEFT")
-	return fs
-end
-
-local function Hex(c) return ("|cff%02x%02x%02x"):format(c[1] * 255, c[2] * 255, c[3] * 255) end
-local function Title(parent, size, color)
-	local fs = Font(parent, size, color or C.accent)
-	fs:SetFont(TITLE_FONT, size, "")
-	fs:SetShadowOffset(1, -1); fs:SetShadowColor(0, 0, 0, 1)
-	return fs
-end
--- Gold dialog frame drawn just outside `frame`, plus the title plate and a close button.
-local function Skin(frame, titleText, onClose)
-	local skin = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-	skin:SetPoint("TOPLEFT", -10, 10); skin:SetPoint("BOTTOMRIGHT", 10, -10)
-	skin:SetFrameLevel(math.max(frame:GetFrameLevel() - 1, 0))
-	skin:SetBackdrop({
-		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",
-		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Gold-Border",
-		tile = true, tileSize = 32, edgeSize = 32,
-		insets = { left = 11, right = 11, top = 12, bottom = 11 },
-	})
-	skin:SetBackdropColor(1, 1, 1, 1)
-	-- the dialog background texture is see-through on its own: put a solid layer under it
-	local under = skin:CreateTexture(nil, "BACKGROUND", nil, -8)
-	under:SetPoint("TOPLEFT", 11, -12); under:SetPoint("BOTTOMRIGHT", -11, 11)
-	under:SetColorTexture(0.045, 0.032, 0.02, 1)
-	local top = CreateFrame("Frame", nil, frame)
-	top:SetAllPoints(skin)
-	top:SetFrameLevel(frame:GetFrameLevel() + 15)
-	local plate = top:CreateTexture(nil, "OVERLAY")
-	plate:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
-	plate:SetSize(320, 64)
-	plate:SetPoint("TOP", 0, 12)
-	local t = top:CreateFontString(nil, "OVERLAY")
-	t:SetFont(TITLE_FONT, 14, "")
-	t:SetTextColor(1, 0.82, 0)
-	t:SetPoint("TOP", plate, "TOP", 0, -14)
-	t:SetText(titleText)
-	skin.title = t
-	local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-	close:SetPoint("TOPRIGHT", 6, 6)
-	close:SetFrameLevel(frame:GetFrameLevel() + 20)
-	close:SetScript("OnClick", onClose or function() frame:Hide() end)
-	return skin
-end
-
--- the emblem, faint, behind the content
-local function Watermark(parent, size, alpha)
-	local w = parent:CreateTexture(nil, "BORDER")
-	w:SetTexture(MEDIA .. "Logo256")
-	w:SetSize(size, size)
-	w:SetAlpha(alpha)
-	return w
-end
-
--- tooltip-style box for small frames (popups, the raid overview)
-local function Box(frame, alpha)
-	if not frame.SetBackdrop then return end -- needs a frame made with "BackdropTemplate"
-	frame:SetBackdrop({
-		bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
-		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-		tile = true, tileSize = 16, edgeSize = 14,
-		insets = { left = 3, right = 3, top = 3, bottom = 3 },
-	})
-	frame:SetBackdropColor(0.06, 0.045, 0.03, alpha or 0.92)
-	frame:SetBackdropBorderColor(0.85, 0.68, 0.30, 1)
-end
-
-ns.UI = { C = C, FONT = FONT, TITLE_FONT = TITLE_FONT, MEDIA = MEDIA, Tex = Tex, Border = Border, Font = Font,
-	Title = Title, Hex = Hex, Skin = Skin, Watermark = Watermark, Box = Box }
 
 -- Widgets ---------------------------------------------------------------------------
 local function Button(parent, text, w, h, accent)
@@ -130,14 +19,14 @@ local function Button(parent, text, w, h, accent)
 	b:SetSize(w, h or 24)
 	b:SetText(text ~= "" and text or " ")
 	b.label = b:GetFontString()
-	b.label:SetFont(FONT, 12, "")
-	b.label:SetTextColor(1, 0.82, 0)
+	UI.SetFont(b.label, "ui", 12)
+	b.label:SetTextColor(unpack(C.accent))
 	b.label:SetPoint("LEFT", 6, 0); b.label:SetPoint("RIGHT", -6, 0)
 	b.label:SetJustifyH("CENTER")
 	b.label:SetWordWrap(false)
 	b.SetLabel = function(self, t) self:SetText(t ~= "" and t or " ") end
 	b:SetScript("OnEnter", function(self) self.label:SetTextColor(1, 1, 1) end)
-	b:SetScript("OnLeave", function(self) self.label:SetTextColor(1, 0.82, 0) end)
+	b:SetScript("OnLeave", function(self) self.label:SetTextColor(unpack(C.accent)) end)
 	return b
 end
 
@@ -150,14 +39,14 @@ local function Toggle(page, x, y, w, label, desc, get, set)
 	row:SetPoint("TOPLEFT", x, y)
 	row:SetSize(w, h)
 	local track = row:CreateTexture(nil, "ARTWORK")
-	track:SetTexture("Interface\\Buttons\\UI-CheckBox-Up")
+	track:SetTexture(TEX.check)
 	track:SetSize(26, 26)
 	track:SetPoint("TOPLEFT", -4, 1)
 	local knob = row:CreateTexture(nil, "OVERLAY")
-	knob:SetTexture("Interface\\Buttons\\UI-CheckBox-Check")
+	knob:SetTexture(TEX.checkMark)
 	knob:SetAllPoints(track)
 	local glow = row:CreateTexture(nil, "HIGHLIGHT")
-	glow:SetTexture("Interface\\Buttons\\UI-CheckBox-Highlight")
+	glow:SetTexture(TEX.checkHighlight)
 	glow:SetBlendMode("ADD")
 	glow:SetAllPoints(track)
 	local text = Font(row, 14, C.text)
@@ -204,13 +93,8 @@ local function Slider(page, y, label, key, minV, maxV, step, suffix)
 	s:SetPoint("TOPLEFT", 0, y - 21)
 	s:SetSize(CONTENT_W, 17)
 	s:SetHitRectInsets(0, 0, -4, -4)
-	s:SetBackdrop({
-		bgFile = "Interface\\Buttons\\UI-SliderBar-Background",
-		edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
-		tile = true, tileSize = 8, edgeSize = 8,
-		insets = { left = 3, right = 3, top = 6, bottom = 6 },
-	})
-	s:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
+	s:SetBackdrop(TEX.slider)
+	s:SetThumbTexture(TEX.sliderThumb)
 	s:SetMinMaxValues(minV, maxV)
 	s:SetValueStep(step)
 	s:SetObeyStepOnDrag(true)
@@ -550,8 +434,8 @@ local function Build()
 		nb:SetSize(SIDE_W - 1, step - 2)
 		nb:SetPoint("TOPLEFT", 0, -10 - (i - 1) * step)
 		nb.bg = nb:CreateTexture(nil, "BACKGROUND")
-		nb.bg:SetTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight")
-		nb.bg:SetBlendMode("ADD"); nb.bg:SetVertexColor(1, 0.75, 0.25, 0.75)
+		nb.bg:SetTexture(TEX.navHighlight)
+		nb.bg:SetBlendMode("ADD"); nb.bg:SetVertexColor(unpack(C.navGlow))
 		nb.bg:SetAllPoints(); nb.bg:Hide()
 		nb.bar = Tex(nb, "ARTWORK", C.accent); nb.bar:SetPoint("TOPLEFT"); nb.bar:SetPoint("BOTTOMLEFT"); nb.bar:SetWidth(3); nb.bar:Hide()
 		nb.text = Font(nb, step < 30 and 13 or 14, C.dim); nb.text:SetPoint("LEFT", 18, 0); nb.text:SetText(pg.title)

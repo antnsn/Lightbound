@@ -158,7 +158,7 @@ function M:Init()
 	bar = CreateFrame("StatusBar", nil, f)
 	bar:SetAllPoints()
 	bar:SetOrientation("VERTICAL")
-	bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+	bar:SetStatusBarTexture(ns.UI.TEX.statusbar)
 	bar:SetMinMaxValues(0, DEFAULT_DUR)
 
 	icon = f:CreateTexture(nil, "ARTWORK")

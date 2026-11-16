@@ -39,7 +39,6 @@ local utf8sub = string.utf8sub or string.sub
 
 local ROW_W, ROW_H, TITLE_H, MAX_ROWS, GAP = 198, 22, 24, 10, 2
 local INSET = 8 -- room between the frame edge and the cells/rows (and the bottom)
-local FONT = "Fonts\\ARIALN.TTF"
 local KEY_BUTTON = "LightboundCleanseKeyButton"
 local frame, title, rows = nil, nil, {}
 local header, petHeader              -- SecureGroupHeader (players) and SecureGroupPetHeader (pets)
@@ -58,7 +57,6 @@ local dirty, needLayout = false, false
 local TYPE_COLOR = {
 	Poison = { 0.0, 0.6, 0.0 }, Disease = { 0.6, 0.4, 0.0 }, Magic = { 0.2, 0.6, 1.0 },
 }
-local CLEAN_BG = { 0.16, 0.16, 0.16, 0.85 }
 
 local function Known(name)
 	local ok, info = pcall(function()
@@ -239,12 +237,12 @@ local function MakeRow(i)
 	row.icon:SetSize(ROW_H - 4, ROW_H - 4); row.icon:SetPoint("LEFT", 2, 0)
 	row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 	row.name = row:CreateFontString(nil, "OVERLAY")
-	row.name:SetFont(FONT, 13, ""); row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
+	row.name:SetFont(ns.UI.F.narrow, 13, ""); row.name:SetPoint("LEFT", row.icon, "RIGHT", 6, 0)
 	row.name:SetPoint("RIGHT", -28, 0); row.name:SetJustifyH("LEFT"); row.name:SetWordWrap(false)
 	row.count = row:CreateFontString(nil, "OVERLAY")
-	row.count:SetFont(FONT, 13, "OUTLINE"); row.count:SetPoint("RIGHT", -6, 0)
-	row.count:SetTextColor(1, 0.82, 0)
-	local hl = row:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints(); hl:SetColorTexture(1, 1, 1, 0.08)
+	row.count:SetFont(ns.UI.F.narrow, 13, "OUTLINE"); row.count:SetPoint("RIGHT", -6, 0)
+	row.count:SetTextColor(unpack(ns.UI.C.accent))
+	ns.UI.Highlight(row)
 	row:SetScript("OnEnter", function(self) if self.data then Tooltip(self) end end)
 	row:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	row:SetAlpha(0)
@@ -268,10 +266,10 @@ end
 
 local function SetFonts(cell, size)
 	local fontSize = math.max(8, math.floor(size * 0.45))
-	cell.name:SetFont(FONT, fontSize, "OUTLINE")
-	cell.count:SetFont(FONT, fontSize, "OUTLINE")
+	cell.name:SetFont(ns.UI.F.narrow, fontSize, "OUTLINE")
+	cell.count:SetFont(ns.UI.F.narrow, fontSize, "OUTLINE")
 	-- the native count belongs to Blizzard once registered; it may refuse while auras are secret
-	if cell.auraCount then pcall(cell.auraCount.SetFont, cell.auraCount, FONT, fontSize, "OUTLINE") end
+	if cell.auraCount then pcall(cell.auraCount.SetFont, cell.auraCount, ns.UI.F.narrow, fontSize, "OUTLINE") end
 end
 
 -- Native aura display ---------------------------------------------------------------------
@@ -373,9 +371,9 @@ local function InitAuraButton(cell, c, ab)
 	icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 	ab:SetIcon(icon)
 	local count = ab:CreateFontString(nil, "OVERLAY")
-	count:SetFont(FONT, math.max(8, math.floor(CellSize() * 0.45)), "OUTLINE")
+	count:SetFont(ns.UI.F.narrow, math.max(8, math.floor(CellSize() * 0.45)), "OUTLINE")
 	count:SetPoint("BOTTOMRIGHT", -1, 0)
-	count:SetTextColor(1, 0.82, 0)
+	count:SetTextColor(unpack(ns.UI.C.accent))
 	ab:SetApplicationCount(count) -- the aura's stacks (the fallback showed the number of debuffs)
 	cell.auraCount = count
 end
@@ -464,7 +462,7 @@ local function Style(cell, secure)
 		cell:RegisterForClicks(GetCVarBool and GetCVarBool("ActionButtonUseKeyDown") and "AnyDown" or "AnyUp")
 	end
 	cell.bg = cell:CreateTexture(nil, "BACKGROUND"); cell.bg:SetAllPoints()
-	cell.bg:SetColorTexture(unpack(CLEAN_BG))
+	cell.bg:SetColorTexture(unpack(ns.UI.C.cell))
 	cell.icon = cell:CreateTexture(nil, "ARTWORK")
 	cell.icon:SetPoint("TOPLEFT", 1, -1); cell.icon:SetPoint("BOTTOMRIGHT", -1, 1)
 	cell.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -476,7 +474,7 @@ local function Style(cell, secure)
 	cell.name:SetPoint("CENTER"); cell.name:SetWordWrap(false)
 	cell.count = cell.top:CreateFontString(nil, "OVERLAY", nil)
 	cell.count:SetPoint("BOTTOMRIGHT", -1, 0)
-	cell.count:SetTextColor(1, 0.82, 0)
+	cell.count:SetTextColor(unpack(ns.UI.C.accent))
 	local top = cell.top
 	cell.edges = {
 		Edge(top, "TOPLEFT", "TOPRIGHT", nil, 1), Edge(top, "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1),
@@ -485,7 +483,7 @@ local function Style(cell, secure)
 	cell.SetBorder = function(self, on) for _, e in ipairs(self.edges) do e:SetAlpha(on and 1 or 0) end end
 	cell:SetBorder(false)
 	SetFonts(cell, CellSize())
-	local hl = cell:CreateTexture(nil, "HIGHLIGHT"); hl:SetAllPoints(); hl:SetColorTexture(1, 1, 1, 0.12)
+	ns.UI.Highlight(cell, 0.12)
 	cell:SetScript("OnEnter", Tooltip)
 	cell:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	if secure then AttachAuras(cell) end
@@ -510,7 +508,7 @@ local function PaintCell(cell, d, best)
 		cell.icon:SetTexture(d.icon or 136207); cell.icon:Show()
 		cell.count:SetText(d.count > 1 and d.count or "")
 	else
-		cell.bg:SetColorTexture(unpack(CLEAN_BG)); cell.icon:Hide(); cell.count:SetText("")
+		cell.bg:SetColorTexture(unpack(ns.UI.C.cell)); cell.icon:Hide(); cell.count:SetText("")
 	end
 	cell:SetBorder(d and best or false)
 	if status ~= "ok" then cell.oor = nil; cell:SetAlpha(0.25); cell:SetBorder(false); return end
@@ -646,7 +644,7 @@ local function PlaceholderGrid()
 				cell.icon:SetTexture(s[3]); cell.icon:Show()
 				cell.count:SetText(s[5] > 1 and s[5] or "")
 			else
-				cell.bg:SetColorTexture(unpack(CLEAN_BG)); cell.icon:Hide(); cell.count:SetText("")
+				cell.bg:SetColorTexture(unpack(ns.UI.C.cell)); cell.icon:Hide(); cell.count:SetText("")
 			end
 			cell:SetBorder(i == 2)
 			cell:SetAlpha(1)
@@ -864,16 +862,9 @@ function M:Init()
 	frame:SetSize(ROW_W, TITLE_H + 5 * (ROW_H + GAP) - GAP + INSET)
 	frame:SetFrameStrata("LOW")
 	frame:Hide()
-	if ns.UI and ns.UI.Box then
-		ns.UI.Box(frame, 0.85)
-	else
-		local bg = frame:CreateTexture(nil, "BACKGROUND")
-		bg:SetAllPoints(); bg:SetColorTexture(0.075, 0.058, 0.042, 0.88)
-	end
-	title = frame:CreateFontString(nil, "OVERLAY")
-	title:SetFont("Fonts\\FRIZQT__.TTF", 11, "")
+	ns.UI.Box(frame, 0.85)
+	title = ns.UI.FrameTitle(frame)
 	title:SetPoint("TOPLEFT", INSET, -7)
-	title:SetTextColor(1, 0.82, 0)
 	ns.MakeMovable(frame, "clPoint")
 	ns.ApplyPoint(frame, "clPoint")
 	-- drags keep the TOPLEFT anchor (Core.lua), so growth (more members, bigger cells) goes down/right

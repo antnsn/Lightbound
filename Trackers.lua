@@ -139,7 +139,7 @@ end
 local function UpdateReckoning(db)
 	local b = icons.reck
 	if ns.unlocked then
-		Set(b, Texture("Reckoning"), "4", "RECKONING"); b.count:SetTextColor(1, 0.82, 0); Bright(b, true); b:Show() return
+		Set(b, Texture("Reckoning"), "4", "RECKONING"); b.count:SetTextColor(unpack(ns.UI.C.accent)); Bright(b, true); b:Show() return
 	end
 	if not db.trEnabled or not db.trReckoning then reck = nil; b:Hide() return end
 	local n, icon, hidden = ReadReckoning()
@@ -155,7 +155,7 @@ local function UpdateReckoning(db)
 	Set(b, icon or reckIcon or Texture("Reckoning"), tostring(n), "RECKONING")
 	Bright(b, true)
 	if n >= RECKONING_MAX then
-		b.count:SetTextColor(1, 0.82, 0)
+		b.count:SetTextColor(unpack(ns.UI.C.accent))
 		if not reckSounded and db.trReckoningSound then Sound("ALARM_CLOCK_WARNING_3", 12889) end
 		reckSounded = true
 	else
@@ -285,7 +285,7 @@ local function MakeIcon(parent)
 	b:SetSize(SIZE, SIZE)
 	b.glow = b:CreateTexture(nil, "BACKGROUND")
 	b.glow:SetPoint("TOPLEFT", -3, 3); b.glow:SetPoint("BOTTOMRIGHT", 3, -3)
-	b.glow:SetColorTexture(1, 0.85, 0.3, 0.35)
+	local g = ns.UI.C.glow; b.glow:SetColorTexture(g[1], g[2], g[3], 0.35)
 	b.glow:Hide()
 	b.tex = b:CreateTexture(nil, "ARTWORK")
 	b.tex:SetAllPoints(); b.tex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -298,10 +298,10 @@ local function MakeIcon(parent)
 	top:SetAllPoints()
 	top:SetFrameLevel(b.cd:GetFrameLevel() + 1)
 	b.count = top:CreateFontString(nil, "OVERLAY")
-	b.count:SetFont("Fonts\\ARIALN.TTF", 20, "OUTLINE")
+	ns.UI.SetFont(b.count, "narrow", 20, "OUTLINE")
 	b.count:SetPoint("CENTER")
 	b.label = top:CreateFontString(nil, "OVERLAY")
-	b.label:SetFont("Fonts\\ARIALN.TTF", 10, "OUTLINE")
+	ns.UI.SetFont(b.label, "narrow", 10, "OUTLINE")
 	b.label:SetPoint("TOP", b, "BOTTOM", 0, -2)
 	b.pulse = b:CreateAnimationGroup()
 	b.pulse:SetLooping("BOUNCE")

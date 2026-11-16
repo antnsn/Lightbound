@@ -231,7 +231,7 @@ local function GridPanel()
 	panel:SetPoint("TOP", UIParent, "TOP", 0, -12)
 	panel:SetFrameStrata("DIALOG")
 	panel:EnableMouse(true)
-	if UI and UI.Box then UI.Box(panel, 0.92) end
+	UI.Box(panel, 0.92)
 	local function Btn(text, w)
 		local b = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
 		b:SetSize(w, 22); b:SetText(text)
@@ -293,7 +293,7 @@ function ShowGrid(show)
 		local t = grid.lines[used]
 		if not t then t = grid:CreateTexture(nil, "BACKGROUND"); grid.lines[used] = t end
 		t:ClearAllPoints()
-		if centre then t:SetColorTexture(1, 0.82, 0, 0.45) else t:SetColorTexture(1, 1, 1, 0.08) end
+		t:SetColorTexture(unpack(centre and ns.UI.C.gridCentre or ns.UI.C.gridLine))
 		if vertical then
 			t:SetPoint("TOP", grid, "TOP", offset, 0); t:SetPoint("BOTTOM", grid, "BOTTOM", offset, 0); t:SetWidth(1)
 		else
@@ -336,17 +336,8 @@ end
 -- Textures are drawn by tools/make_media.py.
 -- card:SetIcon(tex), card:SetTitle(text), card:SetStatus(text, urgent), card:SetFaded(on), card:Glow(on)
 local MEDIA = "Interface\\AddOns\\Lightbound\\Media\\"
-local CARD = {
-	panel = { 0.055, 0.043, 0.035, 0.92 },
-	gilt = { 0.67, 0.53, 0.24, 1 },
-	giltFaint = { 0.47, 0.37, 0.17, 0.9 },
-	light = { 1, 0.86, 0.45, 0.09 },
-	rays = { 1, 0.84, 0.43 },
-	raysFaded = { 0.75, 0.71, 0.63 },
-	title = { 1, 0.84, 0.38 },
-	status = { 0.92, 0.88, 0.78 },
-	urgent = { 1, 0.55, 0.42 },
-}
+-- card colours come from the active skin (Skin.lua loads after this file, so look them up late)
+local CARD = setmetatable({}, { __index = function(_, k) return ns.UI.CARD[k] end })
 
 local function SetGradient(tex, top, bottom)
 	-- newer clients take colour objects, older ones plain numbers
@@ -428,7 +419,7 @@ function ns.MakeCard(name, opts)
 
 	local title = medal:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 	-- Morpheus is the game's own storybook face (quest titles, books); ships with every client
-	if not title:SetFont("Fonts\\MORPHEUS.TTF", 16, "") then title:SetFontObject("GameFontNormalLarge") end
+	if not ns.UI.SetFont(title, "card", 16) then title:SetFontObject("GameFontNormalLarge") end
 	-- title and status as one block, centred on the medallion (title just above the middle)
 	title:SetPoint("BOTTOMLEFT", medal, "RIGHT", 11, 0); title:SetPoint("RIGHT", c, "RIGHT", -10, 0)
 	title:SetJustifyH("LEFT"); title:SetTextColor(unpack(CARD.title)); title:SetWordWrap(false)
