@@ -1,6 +1,7 @@
 -- Reagents: tops up Symbol of Kings (Greater Blessings) and Symbol of Divinity (Divine Intervention)
 -- at any vendor that sells them, and warns when Symbols of Kings run low.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

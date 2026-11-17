@@ -4,6 +4,7 @@
 -- Assignments always come from your row in the Blessings window (/lb blessings), like PallyPower.
 -- The key is an override binding on a secure button.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 ns.CLASSES = { "WARRIOR", "PALADIN", "HUNTER", "ROGUE", "PRIEST", "SHAMAN", "MAGE", "WARLOCK", "DRUID" }
 ns.CHOICES = { "None", "Might", "Wisdom", "Kings", "Salvation", "Light", "Sanctuary" }

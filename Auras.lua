@@ -1,6 +1,7 @@
 -- Paladin aura tracking: warns when no aura is up (or the wrong one, if asked), and tells the
 -- buff key which aura to cast. The wanted aura comes from /lb or the group aura assignment.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 ns.AURAS = { "Devotion", "Retribution", "Concentration", "Shadow Resistance", "Frost Resistance",
 	"Fire Resistance", "Sanctity" }

@@ -2,6 +2,7 @@
 -- Starts on the seal cast and syncs with the buff whenever the client lets addons read it,
 -- because the active seal can be hidden from addons during combat.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

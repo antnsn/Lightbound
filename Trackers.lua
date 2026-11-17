@@ -5,6 +5,7 @@
 --  * Wisdom: low mana in combat and no Judgement of Wisdom from you on the target.
 -- Icons that don't apply (toggle off, spell unknown, nothing to show) are left out and the rest close up.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

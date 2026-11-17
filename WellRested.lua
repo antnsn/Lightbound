@@ -5,6 +5,7 @@
 -- With <key>Keep on, a missing buff is followed too: a "Buff has run out" card stays up and you get one
 -- rebuff warning (out of combat, while alive) until you have the buff again.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local function FormatTime(s)
 	s = math.max(0, math.floor(s))

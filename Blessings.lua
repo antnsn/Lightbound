@@ -1,6 +1,7 @@
 -- Row of icons for the blessings the player wants on themself (chosen in /lb).
 -- Each icon shows the time left; a missing blessing is greyed out with a red border.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 ns.BLESSINGS = {
 	{ key = "Might", spell = 19740 },

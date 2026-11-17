@@ -6,6 +6,7 @@
 -- In combat a small frame shows one icon per assigned Judgement: bright when it's on your target,
 -- dim with the responsible paladin's name when it's missing.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

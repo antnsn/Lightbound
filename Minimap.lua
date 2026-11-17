@@ -1,6 +1,7 @@
 -- Minimap button: left-click options, right-click the Blessings window, drag to move around the minimap.
 -- No libraries; the position is an angle around the minimap (ns.db.minimapAngle).
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

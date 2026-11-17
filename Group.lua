@@ -7,6 +7,7 @@
 -- While PallyPower itself is loaded, Lightbound only reads PallyPower's tables and sends nothing,
 -- so you never show up twice. Remove PallyPower and Lightbound takes over.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local PREFIX = "PLPWR"
 local LB_PREFIX = "LBND" -- Lightbound-only data (judgements, tanks, extra cooldowns); PallyPower never sees it

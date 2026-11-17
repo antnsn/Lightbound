@@ -1,6 +1,7 @@
 -- Warns when grouped without Righteous Fury: in dungeons/raids, and in the open world
 -- when db.world is on (not while resting in a city or inn).
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local SPELL_ID, SPELL_NAME, ICON = 25780, "Righteous Fury", 135962
 local M = {}

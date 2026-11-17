@@ -26,6 +26,7 @@
 -- The key (clKey) clicks a hidden macro button: cleanse the mouseover unit (a cell, a row, any
 -- unit frame), else the target. Override bindings are applied out of combat, deferred otherwise.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

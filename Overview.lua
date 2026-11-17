@@ -2,6 +2,7 @@
 -- are missing it and the shortest time left. Click a row (out of combat) to bless that class:
 -- Greater Blessing in a raid when you can, otherwise the next member who needs it.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

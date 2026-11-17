@@ -2,6 +2,7 @@
 -- and a row with their name and the blessing appears. Click it (out of combat) to bless them.
 -- Rows go away after a while, when the blessing shows up on them, or when your cast lands.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

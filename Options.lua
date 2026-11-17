@@ -1,6 +1,7 @@
 -- Options window (/lb): flat dark style with a sidebar, one page per feature.
 -- Also adds a launcher entry in the game's Settings > AddOns list.
 local addonName, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 -- Style -----------------------------------------------------------------------------
 -- Colours, fonts and textures come from the active skin (Skin.lua); ns.UI holds the helpers.
@@ -573,7 +574,7 @@ if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOn
 	b:SetText("Open options")
 	b:SetScript("OnClick", function()
 		if SettingsPanel and SettingsPanel:IsShown() then HideUIPanel(SettingsPanel) end
-		if ns.isPaladin then ns.ToggleOptions() else ns.Print("only does something on a paladin.") end
+		ns.ToggleOptions()
 	end)
 	pcall(function()
 		local category = Settings.RegisterCanvasLayoutCategory(panel, "Lightbound")

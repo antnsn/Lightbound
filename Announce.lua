@@ -4,6 +4,7 @@
 --    in combat the row -> unit mapping stays fixed and only names and dimming are redrawn.
 --  * Chat announcements for Divine Intervention (raid warning for leaders/assists) and Redemption.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

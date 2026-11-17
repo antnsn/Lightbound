@@ -3,6 +3,7 @@
 --  * Judgement: your Judgement on the target with time left, or a dim "Judge" icon when it's missing.
 -- The client decides when Hammer of Wrath is usable, so no health reading is needed.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

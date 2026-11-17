@@ -6,6 +6,7 @@
 -- party and in a raid. Under your row sits the tank line: what a tank gets from you instead of
 -- Salvation, shown only under the classes you give Salvation.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local win, rows = nil, {}
 local NAME_W, CELL, GAP, ROW_H, PAD = 170, 30, 6, 40, 20

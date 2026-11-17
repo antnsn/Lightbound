@@ -6,6 +6,7 @@
 -- The tank list is shared between Lightbound paladins over LBND: "TANKS name,name" (the group
 -- leader sends, everyone receives; long lists continue with "TANKS +name,name").
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

@@ -5,6 +5,7 @@
 -- On Forever the client hides cooldown times in combat: your own row then keeps the last known
 -- values, and a cast seen in combat is assumed to have started the full cooldown.
 local _, ns = ...
+if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
 local M = {}
 ns.modules[#ns.modules + 1] = M

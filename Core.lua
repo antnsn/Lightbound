@@ -4,6 +4,28 @@ local addonName, ns = ...
 local _, class = UnitClass("player")
 ns.isPaladin = class == "PALADIN"
 
+-- Not a paladin: load nothing. Every other file returns right after its first line, so there are
+-- no frames, events or options here and LightboundDB is left as it is. /lb only says why, and the
+-- addon is unticked for this character alone (the AddOns list can tick it again).
+if not ns.isPaladin then
+	local function Say(msg) print("|cffffd100Lightbound:|r " .. msg) end
+	SLASH_LIGHTBOUND1 = "/lb"
+	SLASH_LIGHTBOUND2 = "/lightbound"
+	SLASH_LIGHTBOUND3 = "/rfr"
+	SlashCmdList.LIGHTBOUND = function() Say("only does something on a paladin.") end
+	local me = UnitName("player")
+	local disable = C_AddOns and C_AddOns.DisableAddOn or DisableAddOn
+	if me and me ~= "" and disable and pcall(disable, addonName, me) then
+		-- say so only when the client confirms it, so a call that did nothing can't repeat every login
+		local state, ok, now = C_AddOns and C_AddOns.GetAddOnEnableState, true, 0
+		if state then ok, now = pcall(state, addonName, me) end
+		if ok and now == 0 then
+			Say("paladins only, so it is turned off for " .. me .. " from the next login.")
+		end
+	end
+	return
+end
+
 ns.defaults = {
 	enabled = true, sound = true, raid = true, world = true,
 	snap = true, gridSize = 20, -- unlocked frames snap to a grid around the screen centre
@@ -547,7 +569,6 @@ loader:SetScript("OnEvent", function(self, _, name)
 	end
 	if ns.db.pbSource == "PallyPower" then ns.db.pbSource = "Group" end -- v2.4 setting
 	self:UnregisterEvent("ADDON_LOADED")
-	if not ns.isPaladin then return end
 	for _, m in ipairs(ns.modules) do m:Init() end
 end)
 
@@ -591,7 +612,6 @@ SLASH_LIGHTBOUND1 = "/lb"
 SLASH_LIGHTBOUND2 = "/lightbound"
 SLASH_LIGHTBOUND3 = "/rfr"
 SlashCmdList.LIGHTBOUND = function(msg)
-	if not ns.isPaladin then Print("only does something on a paladin.") return end
 	local db = ns.db
 	local cmd, arg = strsplit(" ", strlower(strtrim(msg or "")), 2)
 	if cmd == "toggle" then

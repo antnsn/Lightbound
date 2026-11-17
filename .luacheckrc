@@ -39,6 +39,7 @@ read_globals = {
 	"CreateColor",
 	"CreateFrame",
 	"CreateMacro",
+	"DisableAddOn",
 	"C_Secrets",
 	"C_SpecializationInfo",
 	"C_Spell",
