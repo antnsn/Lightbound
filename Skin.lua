@@ -85,12 +85,139 @@ SKINS.lightbound = {
 		title = { 1, 0.84, 0.38 },
 		status = { 0.92, 0.88, 0.78 },
 		urgent = { 1, 0.55, 0.42 },
+		glowEdge = { 1, 0.84, 0.38, 1 }, -- edge colour while glowing, for skins without the sunburst
+		sunburst = true, studs = true, ring = true, round = true, -- the medallion's ornaments
 	},
+	-- "blizzard": the game's own buttons, check boxes and sliders; "flat": plain 1px boxes
+	widgets = "blizzard",
 }
 
+-- a skin is the Lightbound skin with some values replaced (tables merge, so no token is missing)
+local function Derive(base, over)
+	local t = {}
+	for k, v in pairs(base) do t[k] = v end
+	for k, v in pairs(over) do
+		if type(v) == "table" and type(base[k]) == "table" and v[1] == nil and next(v) ~= nil then
+			t[k] = Derive(base[k], v)
+		else
+			t[k] = v
+		end
+	end
+	return t
+end
+
+-- Classic Blizzard: tooltip and dialog frames in the game's own grey and silver, white text.
+SKINS.blizzard = Derive(SKINS.lightbound, {
+	name = "Blizzard",
+	font = { card = FRIZ },
+	color = {
+		border = { 0.45, 0.45, 0.45, 0.9 },
+		hover = { 0.22, 0.22, 0.24, 1 },
+		selected = { 0.20, 0.20, 0.26, 1 },
+		text = { 1, 1, 1 },
+		dim = { 0.66, 0.66, 0.66 },
+		track = { 0.2, 0.2, 0.2, 1 },
+		button = { 0.08, 0.08, 0.09, 1 },
+		navGlow = { 1, 0.82, 0, 0.55 },
+		row = { 0.12, 0.12, 0.14, 0.8 },
+		rowWarn = { 0.38, 0.30, 0.04, 0.55 },
+		rowBad = { 0.42, 0.06, 0.06, 0.55 },
+		cell = { 0.14, 0.14, 0.15, 0.85 },
+		cdText = { 1, 1, 1 },
+		glow = { 1, 0.82, 0 },
+	},
+	box = { bg = { 0.04, 0.04, 0.08 }, border = { 0.8, 0.8, 0.8, 1 } },
+	dialog = {
+		backdrop = {
+			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+			tile = true, tileSize = 32, edgeSize = 32,
+			insets = { left = 11, right = 11, top = 12, bottom = 11 },
+		},
+		under = { 0.02, 0.02, 0.03, 1 },
+	},
+	card = {
+		panel = { 0.04, 0.04, 0.07, 0.92 },
+		gilt = { 0.62, 0.62, 0.62, 1 },
+		giltFaint = { 0.30, 0.30, 0.32, 0.9 },
+		light = { 1, 1, 1, 0.04 },
+		rays = { 1, 0.9, 0.6 },
+		title = { 1, 0.82, 0 },
+		status = { 1, 1, 1 },
+		urgent = { 1, 0.35, 0.3 },
+		glowEdge = { 1, 0.82, 0, 1 },
+		studs = false,
+	},
+})
+
+-- Flat: 1px black edges on dark grey, Arial Narrow throughout, gold kept as the one accent.
+-- Sits well next to EllesmereUI and ElvUI.
+local WHITE = "Interface\\Buttons\\WHITE8x8"
+local FLAT_BACKDROP = { bgFile = WHITE, edgeFile = WHITE, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } }
+SKINS.flat = Derive(SKINS.lightbound, {
+	name = "Flat",
+	font = { ui = ARIALN, title = ARIALN, card = ARIALN },
+	color = {
+		side = { 0, 0, 0, 0.25 },
+		header = { 0, 0, 0, 0.25 },
+		border = { 0, 0, 0, 1 },
+		hover = { 0.22, 0.22, 0.22, 1 },
+		selected = { 0.20, 0.20, 0.20, 1 },
+		text = { 0.92, 0.92, 0.92 },
+		dim = { 0.58, 0.58, 0.58 },
+		accent = { 0.96, 0.78, 0.36 },
+		track = { 0.16, 0.16, 0.16, 1 },
+		button = { 0.13, 0.13, 0.13, 1 },
+		navGlow = { 1, 1, 1, 0.06 },
+		row = { 0.12, 0.12, 0.12, 0.9 },
+		rowWarn = { 0.36, 0.28, 0.04, 0.7 },
+		rowBad = { 0.40, 0.05, 0.07, 0.7 },
+		highlight = { 1, 1, 1, 0.06 },
+		cell = { 0.12, 0.12, 0.12, 0.9 },
+		cdText = { 1, 1, 1 },
+		glow = { 0.96, 0.78, 0.36 },
+	},
+	box = { backdrop = FLAT_BACKDROP, bg = { 0.06, 0.06, 0.06 }, border = { 0, 0, 0, 1 } },
+	dialog = {
+		backdrop = FLAT_BACKDROP,
+		outset = 1,
+		bg = { 0.06, 0.06, 0.06, 0.97 },
+		border = { 0, 0, 0, 1 },
+		under = { 0.06, 0.06, 0.06, 1 },
+		plate = false,
+	},
+	tex = {
+		slider = FLAT_BACKDROP,
+		sliderThumb = WHITE,
+		navHighlight = WHITE,
+		statusbar = WHITE,
+	},
+	card = {
+		panel = { 0.06, 0.06, 0.06, 0.92 },
+		gilt = { 0, 0, 0, 1 },
+		giltFaint = { 0.16, 0.16, 0.16, 1 },
+		light = { 1, 1, 1, 0 },
+		title = { 0.96, 0.78, 0.36 },
+		status = { 0.86, 0.86, 0.86 },
+		urgent = { 1, 0.4, 0.35 },
+		glowEdge = { 0.96, 0.78, 0.36, 1 },
+		sunburst = false, studs = false, ring = false, round = false,
+	},
+	widgets = "flat",
+})
+
+-- picker order
+local ORDER = { "lightbound", "blizzard", "flat" }
+
+-- the skin is fixed for the session once the saved settings are in: picking another one in the
+-- options takes effect at the next reload, so frames built later never mix two skins
 local DEFAULT = "lightbound"
+local current
 local function Active()
-	return SKINS[ns.db and ns.db.skin or DEFAULT] or SKINS[DEFAULT]
+	if current then return current end
+	if not ns.db then return SKINS[DEFAULT] end
+	current = SKINS[ns.db.skin] or SKINS[DEFAULT]
+	return current
 end
 
 -- read-through views of the active skin: UI.C.accent, UI.F.narrow, UI.CARD.gilt ...
@@ -140,14 +267,17 @@ local function Title(parent, size, color)
 	return fs
 end
 
--- Dialog frame drawn just outside `frame`, plus the title plate and a close button.
+local function IsFlat() return Active().widgets == "flat" end
+
+-- Dialog frame drawn just outside `frame`, plus the title plate (if the skin has one) and a close button.
 local function Skin(frame, titleText, onClose)
 	local d = Active().dialog
 	local skin = CreateFrame("Frame", nil, frame, "BackdropTemplate")
 	skin:SetPoint("TOPLEFT", -d.outset, d.outset); skin:SetPoint("BOTTOMRIGHT", d.outset, -d.outset)
 	skin:SetFrameLevel(math.max(frame:GetFrameLevel() - 1, 0))
 	skin:SetBackdrop(d.backdrop)
-	skin:SetBackdropColor(1, 1, 1, 1)
+	skin:SetBackdropColor(unpack(d.bg or { 1, 1, 1, 1 }))
+	if d.border then skin:SetBackdropBorderColor(unpack(d.border)) end
 	local ins = d.backdrop.insets
 	local under = skin:CreateTexture(nil, "BACKGROUND", nil, -8)
 	under:SetPoint("TOPLEFT", ins.left, -ins.top); under:SetPoint("BOTTOMRIGHT", -ins.right, ins.bottom)
@@ -155,18 +285,32 @@ local function Skin(frame, titleText, onClose)
 	local top = CreateFrame("Frame", nil, frame)
 	top:SetAllPoints(skin)
 	top:SetFrameLevel(frame:GetFrameLevel() + 15)
-	local plate = top:CreateTexture(nil, "OVERLAY")
-	plate:SetTexture(d.plate)
-	plate:SetSize(320, 64)
-	plate:SetPoint("TOP", 0, 12)
-	local t = top:CreateFontString(nil, "OVERLAY")
-	SetFont(t, "title", 14)
-	t:SetTextColor(unpack(C.accent))
-	t:SetPoint("TOP", plate, "TOP", 0, -14)
-	t:SetText(titleText)
-	skin.title = t
-	local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-	close:SetPoint("TOPRIGHT", 6, 6)
+	if d.plate then
+		local plate = top:CreateTexture(nil, "OVERLAY")
+		plate:SetTexture(d.plate)
+		plate:SetSize(320, 64)
+		plate:SetPoint("TOP", 0, 12)
+		local t = top:CreateFontString(nil, "OVERLAY")
+		SetFont(t, "title", 14)
+		t:SetTextColor(unpack(C.accent))
+		t:SetPoint("TOP", plate, "TOP", 0, -14)
+		t:SetText(titleText)
+		skin.title = t
+	end
+	local close
+	if IsFlat() then
+		close = CreateFrame("Button", nil, frame)
+		close:SetSize(20, 20)
+		close:SetPoint("TOPRIGHT", -6, -6)
+		local x = close:CreateFontString(nil, "OVERLAY")
+		SetFont(x, "narrow", 16)
+		x:SetPoint("CENTER", 0, 1); x:SetText("x"); x:SetTextColor(unpack(C.dim))
+		close:SetScript("OnEnter", function() x:SetTextColor(1, 1, 1) end)
+		close:SetScript("OnLeave", function() x:SetTextColor(unpack(C.dim)) end)
+	else
+		close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+		close:SetPoint("TOPRIGHT", 6, 6)
+	end
 	close:SetFrameLevel(frame:GetFrameLevel() + 20)
 	close:SetScript("OnClick", onClose or function() frame:Hide() end)
 	return skin
@@ -210,9 +354,19 @@ local function Highlight(frame, alpha)
 	return t
 end
 
+-- Flat skin only: a 1px black edge around an icon (other skins leave icons bare)
+local function IconBorder(frame)
+	if not IsFlat() then return end
+	local b = CreateFrame("Frame", nil, frame)
+	b:SetPoint("TOPLEFT", -1, 1); b:SetPoint("BOTTOMRIGHT", 1, -1)
+	b:SetFrameLevel(math.max(frame:GetFrameLevel() - 1, 0))
+	Tex(b, "BACKGROUND", { 0, 0, 0, 1 }):SetAllPoints()
+	return b
+end
+
 ns.UI = {
 	C = C, F = F, CARD = View("card"), TEX = View("tex"), MEDIA = MEDIA,
-	Active = Active, Skins = SKINS,
+	Active = Active, Skins = SKINS, SkinOrder = ORDER, IsFlat = IsFlat, IconBorder = IconBorder,
 	Tex = Tex, Border = Border, SetFont = SetFont, Font = Font, Title = Title, Hex = Hex,
 	Skin = Skin, Watermark = Watermark, Box = Box, FrameTitle = FrameTitle, RowBg = RowBg, Highlight = Highlight,
 }

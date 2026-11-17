@@ -18,3 +18,4 @@ Lightbound does a lot of small paladin jobs for you. Each page below covers one 
 - [Cooldowns and Divine Intervention](cooldowns-and-divine-intervention.html): every paladin's big cooldowns, a Divine Intervention picker and chat announcements.
 - [Warnings and trackers](warnings-and-trackers.html): Righteous Fury, aura, seal, your own blessings, combat alerts, the trackers row, Well-Rested and Well Fed.
 - [Quality of life](quality-of-life.html): reagent shopping, the minimap button, and moving and resizing frames.
+- [Skins](skins.html): Lightbound gold, classic Blizzard or flat, to match the rest of your UI.

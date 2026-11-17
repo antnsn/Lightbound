@@ -1,5 +1,10 @@
 # Lightbound changelog
 
+## Unreleased
+
+- Skins: pick how Lightbound looks on the new Skin page in `/lb`. Lightbound (the gold look, default), Blizzard (the game's own grey and silver frames) or Flat (thin black edges on dark grey, to sit next to EllesmereUI or ElvUI). A new skin applies after a reload. Colours that mean something (missing, debuff types, class colours) stay the same in every skin.
+- Lightbound.toc loads a new file, so update with the game closed.
+
 ## 4.4
 
 - New look for the reminders: aura, Righteous Fury, Well-Rested and Well Fed are cards built on the Lightbound emblem. The icon is a round medallion in a gold ring with the emblem's sunburst turning slowly behind it, on a dark panel with a double gilt rule. When a buff is gone the light fades and the icon greys.

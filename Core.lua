@@ -233,9 +233,7 @@ local function GridPanel()
 	panel:EnableMouse(true)
 	UI.Box(panel, 0.92)
 	local function Btn(text, w)
-		local b = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-		b:SetSize(w, 22); b:SetText(text)
-		return b
+		return UI.Button(panel, text, w, 22)
 	end
 	local function Resize(delta)
 		ns.db.gridSize = math.max(4, math.min(100, GridSize() + delta))
@@ -385,6 +383,8 @@ function ns.MakeCard(name, opts)
 	rays:SetTexture(MEDIA .. "Sunburst"); rays:SetBlendMode("ADD")
 	rays:SetSize(ICON * 2.3, ICON * 2.3); rays:SetPoint("CENTER", medal)
 	rays:SetVertexColor(unpack(CARD.rays)); rays:SetAlpha(0.55)
+	local sunburst = CARD.sunburst -- without it (flat skin) a glowing card lights its edge instead
+	rays:SetShown(sunburst)
 	local turn = rays:CreateAnimationGroup()
 	turn:SetLooping("REPEAT")
 	local spin = turn:CreateAnimation("Rotation")
@@ -398,8 +398,12 @@ function ns.MakeCard(name, opts)
 	icon:SetSize(ICON, ICON); icon:SetPoint("CENTER")
 	icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 	-- round icon: a mask texture where the client has them, else the older SetMask
-	local masked = false
-	if medal.CreateMaskTexture and icon.AddMaskTexture then
+	local masked = not CARD.round -- square skins skip the mask and frame the icon in 1px black
+	if masked then
+		local edge = medal:CreateTexture(nil, "BACKGROUND")
+		edge:SetPoint("TOPLEFT", icon, -1, 1); edge:SetPoint("BOTTOMRIGHT", icon, 1, -1)
+		edge:SetColorTexture(0, 0, 0, 1)
+	elseif medal.CreateMaskTexture and icon.AddMaskTexture then
 		local ok, mask = pcall(medal.CreateMaskTexture, medal)
 		if ok and mask then
 			mask:SetTexture(MEDIA .. "RoundMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
@@ -408,13 +412,17 @@ function ns.MakeCard(name, opts)
 		end
 	end
 	if not masked and icon.SetMask then pcall(icon.SetMask, icon, MEDIA .. "RoundMask") end
-	local ring = medal:CreateTexture(nil, "OVERLAY")
-	ring:SetTexture(MEDIA .. "Ring"); ring:SetAllPoints()
+	if CARD.ring then
+		local ring = medal:CreateTexture(nil, "OVERLAY")
+		ring:SetTexture(MEDIA .. "Ring"); ring:SetAllPoints()
+	end
 
-	for _, p in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
-		local stud = medal:CreateTexture(nil, "OVERLAY")
-		stud:SetTexture(MEDIA .. "Stud"); stud:SetSize(9, 9)
-		stud:SetPoint(p, c, p, 0, 0)
+	if CARD.studs then
+		for _, p in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
+			local stud = medal:CreateTexture(nil, "OVERLAY")
+			stud:SetTexture(MEDIA .. "Stud"); stud:SetSize(9, 9)
+			stud:SetPoint(p, c, p, 0, 0)
+		end
 	end
 
 	local title = medal:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -430,6 +438,10 @@ function ns.MakeCard(name, opts)
 
 	local faded, glowing = false, false
 	local function Light()
+		if not sunburst then
+			outer:SetColorTexture(unpack(glowing and not faded and CARD.glowEdge or CARD.gilt))
+			return
+		end
 		rays:SetVertexColor(unpack(faded and CARD.raysFaded or CARD.rays))
 		if glowing and not faded then
 			if not turn:IsPlaying() then turn:Play() end

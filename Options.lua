@@ -14,8 +14,19 @@ local CONTENT_W = WIDTH - SIDE_W - PAD * 2
 local win, controls, pages, navButtons = nil, {}, {}, {}
 
 -- Widgets ---------------------------------------------------------------------------
+-- the flat skin's button: a dark box with a 1px edge that lightens under the mouse
+local function FlatButton(parent)
+	local b = CreateFrame("Button", nil, parent)
+	b.bg = Tex(b, "BACKGROUND", C.button); b.bg:SetAllPoints()
+	UI.Border(b)
+	local fs = b:CreateFontString(nil, "OVERLAY")
+	UI.SetFont(fs, "ui", 12)
+	b:SetFontString(fs)
+	return b
+end
+
 local function Button(parent, text, w, h, accent)
-	local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+	local b = UI.IsFlat() and FlatButton(parent) or CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
 	b:SetSize(w, h or 24)
 	b:SetText(text ~= "" and text or " ")
 	b.label = b:GetFontString()
@@ -25,8 +36,14 @@ local function Button(parent, text, w, h, accent)
 	b.label:SetJustifyH("CENTER")
 	b.label:SetWordWrap(false)
 	b.SetLabel = function(self, t) self:SetText(t ~= "" and t or " ") end
-	b:SetScript("OnEnter", function(self) self.label:SetTextColor(1, 1, 1) end)
-	b:SetScript("OnLeave", function(self) self.label:SetTextColor(unpack(C.accent)) end)
+	b:SetScript("OnEnter", function(self)
+		self.label:SetTextColor(1, 1, 1)
+		if self.bg then self.bg:SetColorTexture(unpack(C.hover)) end
+	end)
+	b:SetScript("OnLeave", function(self)
+		self.label:SetTextColor(unpack(C.accent))
+		if self.bg then self.bg:SetColorTexture(unpack(C.button)) end
+	end)
 	return b
 end
 
@@ -38,17 +55,31 @@ local function Toggle(page, x, y, w, label, desc, get, set)
 	local row = CreateFrame("Button", nil, page)
 	row:SetPoint("TOPLEFT", x, y)
 	row:SetSize(w, h)
-	local track = row:CreateTexture(nil, "ARTWORK")
-	track:SetTexture(TEX.check)
-	track:SetSize(26, 26)
-	track:SetPoint("TOPLEFT", -4, 1)
-	local knob = row:CreateTexture(nil, "OVERLAY")
-	knob:SetTexture(TEX.checkMark)
-	knob:SetAllPoints(track)
-	local glow = row:CreateTexture(nil, "HIGHLIGHT")
-	glow:SetTexture(TEX.checkHighlight)
-	glow:SetBlendMode("ADD")
-	glow:SetAllPoints(track)
+	local track, knob
+	if UI.IsFlat() then
+		-- a 14px box with a 1px edge; checked fills it with the accent
+		local box = CreateFrame("Frame", nil, row)
+		box:SetSize(14, 14); box:SetPoint("TOPLEFT", 2, -5)
+		Tex(box, "BACKGROUND", C.button):SetAllPoints()
+		UI.Border(box)
+		knob = Tex(box, "ARTWORK", C.accent)
+		knob:SetPoint("TOPLEFT", 3, -3); knob:SetPoint("BOTTOMRIGHT", -3, 3)
+		local glow = Tex(box, "HIGHLIGHT", C.highlight); glow:SetAllPoints()
+		track = CreateFrame("Frame", nil, row) -- the label anchors to the old 26px check area
+		track:SetSize(26, 26); track:SetPoint("TOPLEFT", -4, 1)
+	else
+		track = row:CreateTexture(nil, "ARTWORK")
+		track:SetTexture(TEX.check)
+		track:SetSize(26, 26)
+		track:SetPoint("TOPLEFT", -4, 1)
+		knob = row:CreateTexture(nil, "OVERLAY")
+		knob:SetTexture(TEX.checkMark)
+		knob:SetAllPoints(track)
+		local glow = row:CreateTexture(nil, "HIGHLIGHT")
+		glow:SetTexture(TEX.checkHighlight)
+		glow:SetBlendMode("ADD")
+		glow:SetAllPoints(track)
+	end
 	local text = Font(row, 14, C.text)
 	text:SetPoint("TOPLEFT", track, "TOPRIGHT", 4, -6)
 	text:SetPoint("RIGHT", row, "RIGHT")
@@ -95,6 +126,12 @@ local function Slider(page, y, label, key, minV, maxV, step, suffix)
 	s:SetHitRectInsets(0, 0, -4, -4)
 	s:SetBackdrop(TEX.slider)
 	s:SetThumbTexture(TEX.sliderThumb)
+	if UI.IsFlat() then
+		-- a slim track and a small accent block for the thumb
+		s:SetBackdropColor(unpack(C.track)); s:SetBackdropBorderColor(unpack(C.border))
+		local thumb = s:GetThumbTexture()
+		thumb:SetSize(8, 17); thumb:SetVertexColor(unpack(C.accent))
+	end
 	s:SetMinMaxValues(minV, maxV)
 	s:SetValueStep(step)
 	s:SetObeyStepOnDrag(true)
@@ -341,6 +378,43 @@ local function BuildRested()
 	Timer("Well Fed", "wellFed", function() ns.TestWellFed() end, "Food buff, also more experience on Forever. Also tells you when it's gone.")
 end
 
+local function BuildSkin()
+	local p = NewPage("Skin", "How Lightbound's frames look. A new skin applies after a reload.")
+	local W = CONTENT_W
+	local names, keyOf = {}, {}
+	for _, key in ipairs(UI.SkinOrder) do
+		local n = UI.Skins[key].name
+		names[#names + 1] = n; keyOf[n] = key
+	end
+	local about = {
+		lightbound = "Warm gold frames, the emblem cards with their slow light.",
+		blizzard = "The game's own grey and silver tooltips, dialogs and buttons.",
+		flat = "Thin black edges on dark grey, plain text. Fits EllesmereUI and ElvUI.",
+	}
+	local pending = Font(p, 12, C.accent)
+	local reload = Button(p, "Reload now", 120, 24)
+	p:Add(select(2, Cycle(p, p.y, "Skin", names,
+		function() return UI.Skins[ns.db.skin or "lightbound"].name end,
+		function(n) ns.db.skin = keyOf[n]; p.skinRow.Sync() end,
+		function() return about[ns.db.skin or "lightbound"] end)) + 12)
+	reload:SetPoint("TOPRIGHT", p, "TOPRIGHT", 0, p.y)
+	pending:SetPoint("TOPLEFT", 0, p.y - 5); pending:SetPoint("RIGHT", reload, "LEFT", -10, 0)
+	reload:SetScript("OnClick", function() ReloadUI() end)
+	-- the reload line shows only when the picked skin differs from the one these frames were built with
+	local built = UI.Active().name
+	local row = { Sync = function()
+		local changed = UI.Skins[ns.db.skin or "lightbound"].name ~= built
+		pending:SetText(changed and "Reload to switch to " .. UI.Skins[ns.db.skin or "lightbound"].name .. "." or "")
+		reload:SetShown(changed)
+	end }
+	controls[#controls + 1] = row
+	p.skinRow = row
+	p:Add(30)
+	local n = Font(p, 12, C.dim)
+	n:SetPoint("TOPLEFT", 0, p.y); n:SetWidth(W); n:SetJustifyH("LEFT")
+	n:SetText("Colours that carry meaning stay the same in every skin: red for missing or expiring, the debuff type colours in the Cleanse grid, class colours on names.")
+end
+
 local function BuildCombat()
 	local p = NewPage("Combat", "Shows when Hammer of Wrath or Exorcism can be cast, and your Judgement on the target.")
 	local W = CONTENT_W
@@ -424,7 +498,7 @@ local function Build()
 	local sl = Tex(side, "ARTWORK", C.border); sl:SetPoint("TOPRIGHT"); sl:SetPoint("BOTTOMRIGHT"); sl:SetWidth(1)
 
 	BuildRF(); BuildAura(); BuildSeal(); BuildCombat(); BuildBlessings(); BuildKey()
-	BuildOverview(); BuildReagents(); BuildRested()
+	BuildOverview(); BuildReagents(); BuildRested(); BuildSkin()
 	for _, build in ipairs(ns.optionPages) do build(ns.UI) end
 
 	-- sidebar rows shrink when there are many pages so they all fit
@@ -436,6 +510,7 @@ local function Build()
 		nb.bg = nb:CreateTexture(nil, "BACKGROUND")
 		nb.bg:SetTexture(TEX.navHighlight)
 		nb.bg:SetBlendMode("ADD"); nb.bg:SetVertexColor(unpack(C.navGlow))
+		if UI.IsFlat() then nb.bg:SetBlendMode("BLEND") end
 		nb.bg:SetAllPoints(); nb.bg:Hide()
 		nb.bar = Tex(nb, "ARTWORK", C.accent); nb.bar:SetPoint("TOPLEFT"); nb.bar:SetPoint("BOTTOMLEFT"); nb.bar:SetWidth(3); nb.bar:Hide()
 		nb.text = Font(nb, step < 30 and 13 or 14, C.dim); nb.text:SetPoint("LEFT", 18, 0); nb.text:SetText(pg.title)

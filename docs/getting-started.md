@@ -55,6 +55,8 @@ Lightbound shows small icons and cards: reminders, procs, trackers.
 
 `/lb reset` puts every frame back where it started.
 
+Using EllesmereUI, ElvUI or another flat UI? Pick the **Flat** look on the **Skin** page in `/lb`. See [Skins](features/skins.html).
+
 ## 5. In a group
 
 When you join a group with other paladins, open the Blessings window with `/lb blessings`. Each paladin has a row; the cells say which blessing you give each class. The group leader and assists can set everyone's row, every paladin can set their own, and **Auto-assign** fills the grid for you.

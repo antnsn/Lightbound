@@ -114,6 +114,7 @@ read_globals = {
 	"PickupSpell",
 	"PlaceAction",
 	"PlaySound",
+	"ReloadUI",
 	"RAID_CLASS_COLORS",
 	"RaidNotice_AddMessage",
 	"RaidWarningFrame",
