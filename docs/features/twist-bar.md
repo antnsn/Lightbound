@@ -27,7 +27,7 @@ Judgement doesn't use up your seal, so you can judge at any time.
 ```
 
 - **Seal icon**: the seal you have up. Greyed out with `NO SEAL` on the bar when you have none.
-- **Three pips**: the copies stored so far, in the colour of their seal. All three turn gold when you're full.
+- **Three pips**: the copies stored so far, in the colour of their seal. They're filled by the game itself from your Echo buff, so they show the real count, in combat too.
 - **Swing bar**: fills toward your next main-hand swing.
 - **Swap window**: with three stored copies of your build seal, the end of the bar is marked. In the last moment before the swing (0.4 seconds by default) it turns bright and says `SWAP » Righteousness`.
 - After you swap, the bar says `swing!` until the swing lands. Then it flashes and says `» Command`, so you swap back.
@@ -51,7 +51,7 @@ Page **Twist** in `/lb`.
 
 ## Good to know
 
-**Lightbound counts the copies itself.** Forever hides the Echo buffs (the stored copies) from addons in combat, so Lightbound counts your swings and seal casts. A swing your **target** dodges, parries or that misses doesn't count. Lightbound only sees that on your target, in the same moment as your swing. So if you hit a mob you don't have targeted, every swing counts. And in a group, someone else's attack being dodged at exactly the moment of your swing can, rarely, take one away. Out of combat the count is checked against the real buffs.
+**The pips are the real count, the swap advice is counted.** Forever hides the Echo buffs (the stored copies) from addons in combat. The pips are drawn by the game from the buff, so they're always right, but Lightbound itself can't read them. For the `SWAP` advice Lightbound counts your swings and seal casts. A swing your **target** dodges, parries or that misses doesn't count. Lightbound only sees that on your target, in the same moment as your swing. So if you hit a mob you don't have targeted, every swing counts. And in a group, someone else's attack being dodged at exactly the moment of your swing can, rarely, take one away. Out of combat the count is checked against the real buffs.
 
 **Move it** by unlocking frames (`/lb unlock`). It shows a sample while unlocked.
 

@@ -1,5 +1,7 @@
 -- Twist bar for Unsealed Wrath (Retribution): stored seal stacks, a swing bar and the moment to swap.
---  * Pips: copies of a seal stored by your swings (counted in TwistLogic.lua; combat hides the Echo buffs).
+--  * Pips: copies of a seal stored by your swings. Drawn by Blizzard from the Echo buffs themselves
+--    (a native AuraContainer writes the true stack count into our bar, in combat too, while Lua can't
+--    read it). Where that isn't available, counted pips from TwistLogic.lua are shown instead.
 --  * Bar: fills toward your next main-hand swing (PLAYER_SWING). With three stored copies of the build
 --    seal, the last part before the swing lights up: swap to the burst seal now.
 --  * Judgement and Holy Strike icons with their cooldown.
@@ -34,6 +36,9 @@ local AVOIDED = { MISS = true, DODGE = true, PARRY = true, EVADE = true, IMMUNE 
 
 local state = L.New()
 local f, bar, zone, sealIcon, text, flash, pips, cdIcons
+local PIPS_W = L.MAX * (PIP * 2) + (L.MAX - 1) * 3
+local echo = {}         -- [seal] = { bar } from the native display, once it is set up
+local native = nil      -- nil = not tried yet, true = Blizzard draws the true stacks, false = counted pips
 local known = false     -- Unsealed Wrath learned, or its Echo buff seen since the last talent change
 local seenEcho = false
 local windowOpen = false -- the swap window is lit (sound once per window)
@@ -151,8 +156,28 @@ local function SetPips(n, seal)
 	end
 end
 
+-- the true stacks, when the engine-written bars can be read back (nil when they are secret)
+local function NativeStacks()
+	if not native then return nil end
+	local by = {}
+	for seal, e in pairs(echo) do
+		local ok, v = pcall(e.bar.GetValue, e.bar)
+		if not ok or isSecret(v) or type(v) ~= "number" then return nil end
+		by[seal] = { n = math.floor(v + 0.5) }
+	end
+	return by
+end
+
 local function Draw(now)
 	local db = ns.db
+	-- the native bars only know Echo of Command and Righteousness; other seals stay counted
+	local covered = not state.stackSeal or ECHO[state.stackSeal] ~= nil
+	local truth = NativeStacks()
+	if truth then
+		local any = false
+		for _, e in pairs(truth) do if e.n > 0 then any = true end end
+		if any or covered then L.Sync(state, truth, now) end
+	end
 	local build, burst = db.twistBuild, db.twistBurst
 	local mode = L.Advice(state, now, build, burst, Window())
 	local nextAt = L.NextSwing(state, now)
@@ -165,7 +190,8 @@ local function Draw(now)
 	bar:SetStatusBarColor(c[1], c[2], c[3], 0.9)
 	sealIcon:SetTexture(state.seal and Texture(state.seal) or Texture(build))
 	sealIcon:SetDesaturated(not state.seal)
-	SetPips(state.stacks, state.stackSeal)
+	-- native: empty slots under Blizzard's fill (counted pips for the seals it doesn't cover)
+	if native and (not state.stackSeal or ECHO[state.stackSeal]) then SetPips(0) else SetPips(state.stacks, state.stackSeal) end
 
 	local ready = mode == "ready" or mode == "swap"
 	zone:SetShown(ready)
@@ -202,6 +228,76 @@ local function DrawSample()
 	UpdateIcons()
 end
 
+-- Native display -------------------------------------------------------------------
+-- One AuraContainer per Echo buff, on the player, with one slot that only takes that buff. Inside
+-- initializeFrame (the one moment the AuraButton is ours) a StatusBar is registered as its
+-- application bar: from then on Blizzard writes the buff's stacks into it, 0 when it is gone.
+local function InitEcho(e, holder, ab, seal)
+	ab:ClearAllPoints(); ab:SetAllPoints(holder)
+	if ab.SetMouseClickEnabled then ab:SetMouseClickEnabled(false) end
+	if ab.SetMouseMotionEnabled then ab:SetMouseMotionEnabled(false) end
+	local sb = CreateFrame("StatusBar", nil, ab)
+	sb:SetAllPoints(ab)
+	sb:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+	local c = COLORS[seal] or { 1, 0.82, 0 }
+	local tex = sb:GetStatusBarTexture()
+	if tex then tex:SetVertexColor(c[1], c[2], c[3], 1) end
+	local opts = { maxApplications = L.MAX }
+	if Enum.StatusBarInterpolation then opts.interpolation = Enum.StatusBarInterpolation.Immediate end
+	ab:SetApplicationBar(sb, opts)
+	-- the gaps between the three pips, above the fill
+	local top = CreateFrame("Frame", nil, ab)
+	top:SetAllPoints(ab); top:SetFrameLevel(sb:GetFrameLevel() + 2)
+	for i = 1, L.MAX - 1 do
+		local gap = top:CreateTexture(nil, "OVERLAY")
+		gap:SetColorTexture(0, 0, 0, 1)
+		gap:SetSize(3, PIP)
+		gap:SetPoint("LEFT", ab, "LEFT", i * (PIP * 2) + (i - 1) * 3, 0)
+	end
+	e.bar = sb -- set last: proves the whole setup ran
+end
+
+-- Out of combat only. Any failure falls back to counted pips for the session.
+local function SetupNative()
+	if native ~= nil or InCombatLockdown() then return end
+	if C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.LoadAddOn and not C_AddOns.IsAddOnLoaded("Blizzard_AuraContainer") then
+		pcall(C_AddOns.LoadAddOn, "Blizzard_AuraContainer")
+	end
+	local level = 3
+	for seal, id in pairs(ECHO) do
+		local e = {}
+		local holder = CreateFrame("Frame", nil, f)
+		holder:SetPoint("TOPLEFT", f, "TOPLEFT", ICON + GAP, 0)
+		holder:SetSize(PIPS_W, PIP)
+		holder:SetFrameLevel(f:GetFrameLevel() + level); level = level + 3
+		local ok = pcall(function()
+			local c = CreateFrame("AuraContainer", nil, holder, "CustomAuraContainerTemplate")
+			c:SetAllPoints(holder)
+			c:EnableMouse(false)
+			c:AddAuraSlot("LB_ECHO_" .. id, "HELPFUL", {
+				sortMethod = 0, sortDirection = 0,
+				candidateFilters = { includeSpellIDs = { [id] = true } },
+				-- Blizzard runs this through securecall, which swallows errors: e.bar tells
+				initializeFrame = function(ab) pcall(InitEcho, e, holder, ab, seal) end,
+			})
+			c:SetUnit("player")
+			c:SetShown(true)
+			c:SetEnabled(true)
+			e.container = c
+		end)
+		if not ok or not e.bar then
+			if e.container then pcall(e.container.SetEnabled, e.container, false) end
+			holder:Hide()
+			for _, other in pairs(echo) do if other.holder then other.holder:Hide() end end
+			echo, native = {}, false
+			return
+		end
+		e.holder = holder
+		echo[seal] = e
+	end
+	native = true
+end
+
 local sealCheck = 0
 local function OnUpdate()
 	local now = GetTime()
@@ -217,6 +313,7 @@ function M:Update(entering)
 	if not f then return end
 	f:SetScript("OnUpdate", nil)
 	if ns.unlocked then f:Show(); DrawSample() return end
+	if native == nil then SetupNative() end
 	local db = ns.db
 	local fighting = entering or ns.InCombat()
 	if not db.twist or not known or not fighting or UnitIsDeadOrGhost("player") then
@@ -349,5 +446,5 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistSound", "Sound when the swap window opens")) + 6)
 	local n = UI.Font(p, 12, UI.C.dim)
 	n:SetPoint("TOPLEFT", 0, p.y - 4); n:SetPoint("RIGHT", p, "RIGHT")
-	n:SetText("Combat hides the stored copies from addons, so Lightbound counts your swings. A miss, dodge or parry on your target is left out.")
+	n:SetText("The pips are drawn by the game from your Echo buff. The swap advice is counted from your swings, leaving out a miss, dodge or parry on your target.")
 end

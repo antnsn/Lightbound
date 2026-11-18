@@ -28,6 +28,10 @@ before the 4th swing, swap back) is hard to time by eye. The bar shows the rhyth
   while stacks are of another seal consumes them (burst) and stores one of the current seal.
   15 s without a swing clears them. Out of combat the Echo auras correct the count.
   A swing whose target shows MISS/DODGE/PARRY (UNIT_COMBAT "target", same moment, tested in game) is taken back.
+- Pips: a native AuraContainer per Echo buff (includeSpellIDs, player, HELPFUL) with a StatusBar registered
+  through SetApplicationBar: the engine writes the true stacks, in combat too (EllesmereUI uses the same API
+  for warrior charges). If the bar's value turns out readable, it replaces the count; else it is display only.
+  Counted pips remain the fallback when the container can't be set up.
 - Seal changes come only from spellbook seal casts (IsPlayerSpell); the 20424-style procs are ignored.
   The same check goes into SealTimer.lua, which today restarts its 30 s timer on every Command proc.
 - Bar: seal icon, 3 pips (gold at 3), swing fill toward the next swing. At 3 stacks of the build seal,
