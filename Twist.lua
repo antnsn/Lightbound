@@ -2,8 +2,8 @@
 --  * Pips: copies of a seal stored by your swings. Drawn by Blizzard from the Echo buffs themselves
 --    (a native AuraContainer writes the true stack count into our bar, in combat too, while Lua can't
 --    read it). Where that isn't available, counted pips from TwistLogic.lua are shown instead.
---  * Bar: fills toward your next main-hand swing (PLAYER_SWING). With three stored copies of the build
---    seal, the last part before the swing lights up: swap to the burst seal now.
+--  * Bar: fills toward your next main-hand swing (PLAYER_SWING). As soon as three copies of the build
+--    seal are stored it says SWAP: they last 15 s, so swapping early only makes the burst come sooner.
 --  * Judgement and Holy Strike icons with their cooldown.
 -- Shown in combat for paladins who have Unsealed Wrath.
 local _, ns = ...
@@ -35,13 +35,13 @@ local W, H, ICON, PIP, GAP = 220, 14, 34, 10, 4
 local AVOIDED = { MISS = true, DODGE = true, PARRY = true, EVADE = true, IMMUNE = true, DEFLECT = true }
 
 local state = L.New()
-local f, bar, zone, sealIcon, text, flash, pips, cdIcons
+local f, bar, sealIcon, text, flash, pips, cdIcons
 local PIPS_W = L.MAX * (PIP * 2) + (L.MAX - 1) * 3
 local echo = {}         -- [seal] = { bar } from the native display, once it is set up
 local native = nil      -- nil = not tried yet, true = Blizzard draws the true stacks, false = counted pips
 local known = false     -- Unsealed Wrath learned, or its Echo buff seen since the last talent change
 local seenEcho = false
-local windowOpen = false -- the swap window is lit (sound once per window)
+local windowOpen = false -- SWAP is showing (sound once each time)
 
 local function IsSeal(name) return name and name:find("^Seal of") ~= nil end
 local function Short(name) return name and (name:gsub("^Seal of t?h?e? ?", "")) or "" end
@@ -61,7 +61,6 @@ local function CheckKnown()
 	for _, b in ipairs(cdIcons or {}) do b.known = Known(b.spell.name) end
 end
 
-local function Window() return (ns.db.twistWindowMs or 400) / 1000 end
 
 -- the Echo buffs, out of combat only; nil when they can't be read
 local function ReadEchoes()
@@ -179,7 +178,7 @@ local function Draw(now)
 		if any or covered then L.Sync(state, truth, now) end
 	end
 	local build, burst = db.twistBuild, db.twistBurst
-	local mode = L.Advice(state, now, build, burst, Window())
+	local mode = L.Advice(state, now, build, burst)
 	local nextAt = L.NextSwing(state, now)
 	if nextAt and state.swingDur and state.swingDur > 0 then
 		bar:SetValue(1 - math.max(0, nextAt - now) / state.swingDur)
@@ -193,22 +192,14 @@ local function Draw(now)
 	-- native: empty slots under Blizzard's fill (counted pips for the seals it doesn't cover)
 	if native and (not state.stackSeal or ECHO[state.stackSeal]) then SetPips(0) else SetPips(state.stacks, state.stackSeal) end
 
-	local ready = mode == "ready" or mode == "swap"
-	zone:SetShown(ready)
-	if ready and state.swingDur and state.swingDur > 0 then
-		zone:SetWidth(math.max(2, W * math.min(1, Window() / state.swingDur)))
-	end
 	local accent = ns.UI.C.accent
 	if mode == "swap" then
 		text:SetText("SWAP » " .. Short(burst)); text:SetTextColor(unpack(accent))
-		zone:SetColorTexture(accent[1], accent[2], accent[3], 0.85)
 		if not windowOpen and db.twistSound then PlaySound(SOUNDKIT.RAID_WARNING, "Master") end
 		windowOpen = true
 	else
 		windowOpen = false
-		zone:SetColorTexture(accent[1], accent[2], accent[3], 0.35)
-		if mode == "ready" then text:SetText("» " .. Short(burst)); text:SetTextColor(1, 1, 1)
-		elseif mode == "burst" then text:SetText("swing!"); text:SetTextColor(unpack(accent))
+		if mode == "burst" then text:SetText("swing!"); text:SetTextColor(unpack(accent))
 		elseif mode == "back" then text:SetText("» " .. Short(build)); text:SetTextColor(unpack(accent))
 		elseif mode == "noseal" then text:SetText("NO SEAL"); text:SetTextColor(1, 0.25, 0.25)
 		elseif mode == "other" then text:SetText(Short(state.seal)); text:SetTextColor(0.7, 0.7, 0.7)
@@ -221,9 +212,7 @@ local function DrawSample()
 	bar:SetValue(0.85); bar:SetStatusBarColor(0.90, 0.30, 0.25, 0.9)
 	sealIcon:SetTexture(Texture(ns.db.twistBuild)); sealIcon:SetDesaturated(false)
 	SetPips(3, ns.db.twistBuild)
-	zone:Show(); zone:SetWidth(W * 0.15)
 	local a = ns.UI.C.accent
-	zone:SetColorTexture(a[1], a[2], a[3], 0.85)
 	text:SetText("SWAP » " .. Short(ns.db.twistBurst)); text:SetTextColor(unpack(a))
 	UpdateIcons()
 end
@@ -354,11 +343,6 @@ function M:Init()
 	bar:SetStatusBarTexture(ns.UI.TEX.statusbar)
 	bar:SetMinMaxValues(0, 1)
 
-	-- the swap window sits at the end of the swing
-	zone = bar:CreateTexture(nil, "OVERLAY")
-	zone:SetPoint("TOPRIGHT"); zone:SetPoint("BOTTOMRIGHT"); zone:SetWidth(20)
-	zone:Hide()
-
 	text = bar:CreateFontString(nil, "OVERLAY")
 	ns.UI.SetFont(text, "narrow", 12, "OUTLINE")
 	text:SetPoint("CENTER", bar, "CENTER", 0, 0)
@@ -436,14 +420,13 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	local p = UI.NewPage("Twist", "Unsealed Wrath: stored seal copies and when to swap, on a swing bar. Shown in combat when you have the talent.")
 	local CW = UI.CONTENT_W
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twist", "Show the twist bar",
-		"Three pips for the copies your swings store, and the bar lights up just before the swing where you swap.")) + 14)
+		"Three pips for the copies your swings store, and SWAP as soon as you have three.")) + 14)
 	p:Add(select(2, UI.Cycle(p, p.y, "Build with", SEALS,
 		function() return ns.db.twistBuild end, function(v) ns.db.twistBuild = v end)) + 4)
 	p:Add(select(2, UI.Cycle(p, p.y, "Swap to", SEALS,
 		function() return ns.db.twistBurst end, function(v) ns.db.twistBurst = v end)) + 8)
-	p:Add(select(2, UI.Slider(p, p.y, "Swap window", "twistWindowMs", 200, 1000, 50, " ms")) + 8)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistCDs", "Judgement and Holy Strike icons")) + 6)
-	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistSound", "Sound when the swap window opens")) + 6)
+	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistSound", "Sound when it's time to swap")) + 6)
 	local n = UI.Font(p, 12, UI.C.dim)
 	n:SetPoint("TOPLEFT", 0, p.y - 4); n:SetPoint("RIGHT", p, "RIGHT")
 	n:SetText("The pips are drawn by the game from your Echo buff. The swap advice is counted from your swings, leaving out a miss, dodge or parry on your target.")

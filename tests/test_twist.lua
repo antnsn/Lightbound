@@ -34,21 +34,21 @@ eq(s.stacks, 0, "expired"); eq(s.stackSeal, nil, "no stack seal")
 local t = L.New(); L.Seal(t, C, 0); L.Swing(t, 3.3, 1); L.Swing(t, 3.3, 4.3)
 L.Seal(t, C, 5); eq(t.stacks, 2, "same seal recast keeps stacks")
 
--- advice: build, ready, swap inside the window, burst pending, back
+-- advice: build, swap as soon as three are stored (they last 15 s), burst pending, back
 local a = L.New(); L.Seal(a, C, 0)
-eq(L.Advice(a, 0.5, C, R, 0.4), "build", "no stacks yet: build")
+eq(L.Advice(a, 0.5, C, R), "build", "no stacks yet: build")
 L.Swing(a, 3.3, 1); L.Swing(a, 3.3, 4.3); L.Swing(a, 3.3, 7.6) -- next swing at 10.9
-eq(L.Advice(a, 8, C, R, 0.4), "ready", "three stacks, swing far: ready")
-eq(L.Advice(a, 10.6, C, R, 0.4), "swap", "inside the window: swap")
+eq(L.Advice(a, 7.7, C, R), "swap", "three stacks: swap right away")
+eq(L.Advice(a, 10.6, C, R), "swap", "still swap just before the swing")
 L.Seal(a, R, 10.7)
-eq(L.Advice(a, 10.8, C, R, 0.4), "burst", "Righteousness on, Command stacks waiting")
+eq(L.Advice(a, 10.8, C, R), "burst", "Righteousness on, Command stacks waiting")
 L.Swing(a, 3.3, 10.9)
-eq(L.Advice(a, 11, C, R, 0.4), "back", "after the burst: back to Command")
+eq(L.Advice(a, 11, C, R), "back", "after the burst: back to Command")
 L.Seal(a, C, 11.5)
-eq(L.Advice(a, 11.6, C, R, 0.4), "build", "back on Command: build again")
-eq(L.Advice(L.New(), 1, C, R, 0.4), "noseal", "no seal")
+eq(L.Advice(a, 11.6, C, R), "build", "back on Command: build again")
+eq(L.Advice(L.New(), 1, C, R), "noseal", "no seal")
 local o = L.New(); L.Seal(o, "Seal of the Crusader", 0)
-eq(L.Advice(o, 1, C, R, 0.4), "other", "another seal")
+eq(L.Advice(o, 1, C, R), "other", "another seal")
 
 -- next swing time; none once the swing timer has run out for a while
 local w = L.New(); L.Seal(w, C, 0); L.Swing(w, 3.3, 1)

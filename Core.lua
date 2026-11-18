@@ -31,7 +31,7 @@ ns.defaults = {
 	snap = true, gridSize = 20, -- unlocked frames snap to a grid around the screen centre
 	rfPoint = { "CENTER", "UIParent", "CENTER", 0, 230 },
 	seal = true, sealEmptyInCombat = true, sealHeight = 220, sealWidth = 22,
-	twist = true, twistBuild = "Seal of Command", twistBurst = "Seal of Righteousness", twistWindowMs = 400,
+	twist = true, twistBuild = "Seal of Command", twistBurst = "Seal of Righteousness",
 	twistCDs = true, twistSound = false,
 	twistPoint = { "CENTER", "UIParent", "CENTER", 0, -190 },
 	sealPoint = { "CENTER", "UIParent", "CENTER", -260, -60 },

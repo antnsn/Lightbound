@@ -35,10 +35,11 @@ before the 4th swing, swap back) is hard to time by eye. The bar shows the rhyth
 - Seal changes come only from spellbook seal casts (IsPlayerSpell); the 20424-style procs are ignored.
   The same check goes into SealTimer.lua, which today restarts its 30 s timer on every Command proc.
 - Bar: seal icon, 3 pips (gold at 3), swing fill toward the next swing. At 3 stacks of the build seal,
-  the last `twistWindow` seconds (default 0.4) before the swing light up "SWAP → Righteousness".
+  SWAP shows as soon as 3 are stored (user, 2026-11-19: copies last 15 s, waiting only delays the burst;
+  the earlier 0.4 s window before the swing was dropped).
   After the burst swing: short flash and "→ Command" until you swap back. Command proc: small flash.
 - Settings (own options page "Twist"): show (on), build seal (Command), burst seal (Righteousness),
-  swap window 0.2–1.0 s, Judgement/Holy Strike icons (on), sound when the window opens (off).
+  Judgement/Holy Strike icons (on), sound when SWAP shows (off).
 - Shown in combat when Unsealed Wrath is known (or an Echo buff has been seen), movable, sample when
   frames are unlocked. Not shown for other paladins.
 - Not in scope: Hammer of Wrath (target health in combat untested), "next button" icon.

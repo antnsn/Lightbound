@@ -79,17 +79,14 @@ end
 
 -- what to do now:
 --  "noseal" no seal up · "other" a seal outside the twist · "build" keep swinging with the build seal
---  "ready" three stored, swap before the next swing · "swap" inside the window: swap now
+--  "swap" three stored: swap now (they last 15 s, so any time before the next swing is fine;
+--         a swing still on the build seal only refreshes them)
 --  "burst" burst seal on, the next swing uses the stacks · "back" stacks used: back to the build seal
-function L.Advice(s, now, build, burst, window)
+function L.Advice(s, now, build, burst)
 	L.Expire(s, now)
 	if not s.seal then return "noseal" end
 	if s.seal == build then
-		if s.stackSeal == build and s.stacks >= L.MAX then
-			local nextAt = L.NextSwing(s, now)
-			if nextAt and nextAt - now <= window then return "swap" end
-			return "ready"
-		end
+		if s.stackSeal == build and s.stacks >= L.MAX then return "swap" end
 		return "build"
 	elseif s.seal == burst then
 		if s.stackSeal == build and s.stacks > 0 then return "burst" end

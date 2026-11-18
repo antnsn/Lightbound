@@ -14,7 +14,7 @@ For Retribution paladins with **Unsealed Wrath**. The bar shows how many seal co
 Each melee swing stores a copy of your active seal for 15 seconds, up to 3. When a swing lands with a **different** seal, all stored copies are used, and each one gets that seal's normal chance to proc. The usual twist:
 
 1. Swing three times with Seal of Command.
-2. Swap to Seal of Righteousness just before the fourth swing.
+2. Swap to Seal of Righteousness as soon as the third copy is stored. The copies last 15 seconds, so there's no need to wait for the last moment. Wait too long and the fourth swing only refreshes the three copies, so the burst comes one swing later.
 3. Swap back to Command after that swing and build again.
 
 Judgement doesn't use up your seal, so you can judge at any time.
@@ -23,13 +23,13 @@ Judgement doesn't use up your seal, so you can judge at any time.
 
 ```
  [Seal]  ■ ■ ■                     [Judgement] [Holy Strike]
- [■■■■■■■■■■■■■■■■■■■■■■|SWAP » Righteousness|]
+ [■■■■■■■■■■■■■■  SWAP » Righteousness  ░░░░░░░]
 ```
 
 - **Seal icon**: the seal you have up. Greyed out with `NO SEAL` on the bar when you have none.
 - **Three pips**: the copies stored so far, in the colour of their seal. They're filled by the game itself from your Echo buff, so they show the real count, in combat too.
 - **Swing bar**: fills toward your next main-hand swing.
-- **Swap window**: with three stored copies of your build seal, the end of the bar is marked. In the last moment before the swing (0.4 seconds by default) it turns bright and says `SWAP » Righteousness`.
+- **SWAP**: as soon as you have three copies of your build seal, the bar says `SWAP » Righteousness`.
 - After you swap, the bar says `swing!` until the swing lands. Then it flashes and says `» Command`, so you swap back.
 - A short flash also shows when a seal procs from your stored copies.
 - **Judgement and Holy Strike**: greyed out with a cooldown sweep while they're on cooldown.
@@ -45,9 +45,8 @@ Page **Twist** in `/lb`.
 | Show the twist bar | On | |
 | Build with | Seal of Command | The seal you stack. |
 | Swap to | Seal of Righteousness | The seal whose swing uses the stored copies. |
-| Swap window | 400 ms | How long before the swing the bar says swap. Raise it if your latency is high. |
 | Judgement and Holy Strike icons | On | |
-| Sound when the swap window opens | Off | |
+| Sound when it's time to swap | Off | Once, when SWAP shows. |
 
 ## Good to know
 
@@ -55,4 +54,4 @@ Page **Twist** in `/lb`.
 
 **Move it** by unlocking frames (`/lb unlock`). It shows a sample while unlocked.
 
-**Slow weapons make it easier.** With a 3.3 second or slower two-hander the swap window is easier to hit.
+**Slow weapons make it easier.** You need time for two seal casts between swings (one global cooldown each), so a 3.3 second or slower two-hander leaves room to spare.
