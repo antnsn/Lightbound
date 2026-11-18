@@ -11,6 +11,8 @@ Skin.lua
 Group.lua
 RighteousFury.lua
 SealTimer.lua
+TwistLogic.lua
+Twist.lua
 WellRested.lua
 Carrot.lua
 Auras.lua

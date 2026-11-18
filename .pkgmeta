@@ -19,3 +19,5 @@ ignore:
   - CLAUDE.md
   - tools
   - .luacheckrc
+  - design
+  - tests

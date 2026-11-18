@@ -31,6 +31,9 @@ ns.defaults = {
 	snap = true, gridSize = 20, -- unlocked frames snap to a grid around the screen centre
 	rfPoint = { "CENTER", "UIParent", "CENTER", 0, 230 },
 	seal = true, sealEmptyInCombat = true, sealHeight = 220, sealWidth = 22,
+	twist = true, twistBuild = "Seal of Command", twistBurst = "Seal of Righteousness", twistWindowMs = 400,
+	twistCDs = true, twistSound = false,
+	twistPoint = { "CENTER", "UIParent", "CENTER", 0, -190 },
 	sealPoint = { "CENTER", "UIParent", "CENTER", -260, -60 },
 	sealDur = {},
 	wellRested = true, wellRestedMinutes = 5, wellRestedSound = true, wellRestedIcon = true, wellRestedKeep = false,
@@ -125,6 +128,16 @@ function ns.ReadPlayerBuffs()
 		hidden = true
 	end
 	return buffs, hidden
+end
+
+-- true when a cast is a spell from your spellbook, false for something it set off (a seal's proc).
+-- When the client won't say, nearSwing decides: right after a swing it was most likely a proc.
+function ns.IsOwnSpell(spellID, nearSwing)
+	if spellID and not isSecret(spellID) and IsPlayerSpell then
+		local ok, own = pcall(IsPlayerSpell, spellID)
+		if ok and not isSecret(own) and own ~= nil then return own and true or false end
+	end
+	return not nearSwing
 end
 
 function ns.SpellName(spellID)

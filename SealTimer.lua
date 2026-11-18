@@ -186,8 +186,9 @@ function M:Init()
 	f:SetScript("OnEvent", function(_, event, _, _, spellID)
 		if event == "UNIT_SPELLCAST_SUCCEEDED" then
 			local name = ns.SpellName(spellID)
-			-- On Forever, Judgement does not consume the seal, so only a new seal cast restarts the timer
-			if IsSeal(name) then
+			-- On Forever, Judgement does not consume the seal, so only a new seal cast restarts the timer.
+			-- Seal of Command's proc (20424) comes through here too: skip what isn't in your spellbook.
+			if IsSeal(name) and ns.IsOwnSpell(spellID) then
 				SetSeal(name)
 			end
 		elseif event == "PLAYER_DEAD" then
