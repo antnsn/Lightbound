@@ -1,8 +1,9 @@
 # Lightbound changelog
 
-## Unreleased
+## 4.5
 
 - Skins: pick how Lightbound looks on the new Skin page in `/lb`. Lightbound (the gold look, default), Blizzard (the game's own grey and silver frames) or Flat (thin black edges on dark grey, to sit next to EllesmereUI or ElvUI). A new skin applies after a reload. Colours that mean something (missing, debuff types, class colours) stay the same in every skin.
+- Lightbound only loads on paladins. On any other class it does nothing, and it unticks itself for that character in the AddOns list.
 - Lightbound.toc loads a new file, so update with the game closed.
 
 ## 4.4
