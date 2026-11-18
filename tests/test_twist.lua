@@ -62,4 +62,17 @@ L.Expire(y, 12.5); eq(y.stacks, 0, "synced stacks keep their own expiry")
 L.Sync(y, { [C] = { n = 2 } }, 3); eq(y.stacks, 2, "no expiry given: counts from now")
 L.Sync(y, {}, 3); eq(y.stacks, 0, "synced none")
 
+-- a dodged, parried or missed swing stores nothing (and bursts nothing): undo it
+local d = L.New(); L.Seal(d, C, 0)
+L.Swing(d, 3.3, 1); L.Swing(d, 3.3, 4.3)
+L.Swing(d, 3.3, 7.6); eq(L.Avoid(d, 7.6), true, "avoid right after the swing")
+eq(d.stacks, 2, "dodged swing not counted")
+eq(math.abs(L.NextSwing(d, 8) - 10.9) < 1e-9, true, "the swing timer still moved on")
+eq(L.Avoid(d, 7.7), false, "only once per swing")
+L.Swing(d, 3.3, 10.9); eq(L.Avoid(d, 10.95), false, "a later frame: someone else's"); eq(d.stacks, 3, "kept")
+L.Seal(d, R, 12)
+eq(L.Swing(d, 3.3, 14.2), "burst", "burst swing")
+L.Avoid(d, 14.2)
+eq(d.stacks, 3, "a dodged burst swing keeps the stacks"); eq(d.stackSeal, C, "still Command")
+
 print("all ok")

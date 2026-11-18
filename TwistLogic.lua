@@ -2,13 +2,17 @@
 -- Each main-hand swing stores a copy of the active Seal for 15 s, up to 3. A swing while the stacks are
 -- of another Seal consumes them all (the burst) and stores one of the Seal you have now.
 -- The client hides the Echo buffs in combat, so the stacks are counted here from swings and seal casts.
--- Known limit: a missed or dodged swing counts too (addons get no combat log).
+-- A swing the target dodges, parries or that misses stores nothing: Twist.lua sees that on the target
+-- (UNIT_COMBAT in the same moment) and calls L.Avoid to take the swing back.
 local _, ns = ...
 
 local L = {}
 ns.TwistLogic = L
 
 L.MAX, L.LIFE = 3, 15
+-- The target's miss/dodge/parry belongs to your swing only in the same frame (GetTime is per frame,
+-- and in game both arrive together). Wider would take in other players' attacks on the same target.
+L.AVOID_WINDOW = 0.02
 
 function L.New()
 	return { seal = nil, stacks = 0, stackSeal = nil, storedAt = nil, swingAt = nil, swingDur = nil }
@@ -28,6 +32,7 @@ end
 function L.Swing(s, dur, now)
 	L.Expire(s, now)
 	s.swingAt, s.swingDur = now, dur
+	s.undo = { stacks = s.stacks, stackSeal = s.stackSeal, storedAt = s.storedAt, at = now }
 	if not s.seal then return nil end
 	local burst
 	if s.stacks > 0 and s.stackSeal ~= s.seal then
@@ -42,6 +47,14 @@ function L.Swing(s, dur, now)
 	s.storedAt = now
 	if burst then return "burst", burst end
 	return "store"
+end
+
+-- the last swing didn't land (miss, dodge, parry): put the stacks back as they were. True when undone.
+function L.Avoid(s, now)
+	local u = s.undo
+	if not u or now - u.at > L.AVOID_WINDOW then return false end
+	s.stacks, s.stackSeal, s.storedAt, s.undo = u.stacks, u.stackSeal, u.storedAt, nil
+	return true
 end
 
 -- the readable truth out of combat: { [seal name] = { n = stacks, expires = time or nil } }.

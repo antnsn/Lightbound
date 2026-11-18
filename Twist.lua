@@ -29,6 +29,8 @@ local COLORS = {
 }
 local CDS = { { name = "Judgement", dur = 10 }, { name = "Holy Strike", dur = 10 } } -- dur until read once
 local W, H, ICON, PIP, GAP = 220, 14, 34, 10, 4
+-- what the target shows when your swing didn't land (UNIT_COMBAT action); a block or absorb still lands
+local AVOIDED = { MISS = true, DODGE = true, PARRY = true, EVADE = true, IMMUNE = true, DEFLECT = true }
 
 local state = L.New()
 local f, bar, zone, sealIcon, text, flash, pips, cdIcons
@@ -287,9 +289,14 @@ function M:Init()
 	pcall(ev.RegisterEvent, ev, "PLAYER_TALENT_UPDATE")
 	ev:RegisterUnitEvent("UNIT_AURA", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+	ev:RegisterUnitEvent("UNIT_COMBAT", "target")
 	ev:SetScript("OnEvent", function(_, event, a1, a2, a3)
 		local now = GetTime()
-		if event == "PLAYER_SWING" then -- duration, swingType (0 = main hand)
+		if event == "UNIT_COMBAT" then -- unit, action, flags, amount: only the action is readable in combat
+			local action = Clean(a2)
+			if action and AVOIDED[action] then L.Avoid(state, now) end
+			return
+		elseif event == "PLAYER_SWING" then -- duration, swingType (0 = main hand)
 			local dur, kind = Clean(a1), Clean(a2)
 			if kind ~= 0 or not dur or dur <= 0 then return end
 			if L.Swing(state, dur, now) == "burst" then flash.anim:Stop(); flash.anim:Play() end
@@ -342,5 +349,5 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistSound", "Sound when the swap window opens")) + 6)
 	local n = UI.Font(p, 12, UI.C.dim)
 	n:SetPoint("TOPLEFT", 0, p.y - 4); n:SetPoint("RIGHT", p, "RIGHT")
-	n:SetText("Combat hides the stored copies from addons, so Lightbound counts your swings. A miss or dodge still counts as one.")
+	n:SetText("Combat hides the stored copies from addons, so Lightbound counts your swings. A miss, dodge or parry on your target is left out.")
 end

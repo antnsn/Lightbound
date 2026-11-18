@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Twist bar (new page Twist): for Retribution with Unsealed Wrath. Three pips for the seal copies your swings store, a swing bar, and a bright SWAP just before the swing where you change seals. Judgement and Holy Strike icons alongside.
+- Twist bar (new page Twist): for Retribution with Unsealed Wrath. Three pips for the seal copies your swings store, a swing bar, and a bright SWAP just before the swing where you change seals. Judgement and Holy Strike icons alongside. A swing your target dodges, parries or that misses isn't counted.
 - Seal timer: a Seal of Command proc no longer restarts the 30 second timer.
 - Announce: "Say when you drink" posts "Drinking" in party chat when you start drinking in a group, by default only in dungeons and raids. Off by default, under Announce.
 - Blessings window: a new **Players** tab with one line per player. Set a blessing for one player only (grey follows the class, gold is that player's own), and mark tanks right there. A player with their own blessing no longer counts as missing the class blessing.

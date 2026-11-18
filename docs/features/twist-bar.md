@@ -51,7 +51,7 @@ Page **Twist** in `/lb`.
 
 ## Good to know
 
-**Lightbound counts the copies itself.** Forever hides the Echo buffs (the stored copies) from addons in combat, so Lightbound counts your swings and seal casts. Addons get no combat log, so a swing that misses or is dodged still counts as one. Out of combat the count is checked against the real buffs.
+**Lightbound counts the copies itself.** Forever hides the Echo buffs (the stored copies) from addons in combat, so Lightbound counts your swings and seal casts. A swing your **target** dodges, parries or that misses doesn't count. Lightbound only sees that on your target, in the same moment as your swing. So if you hit a mob you don't have targeted, every swing counts. And in a group, someone else's attack being dodged at exactly the moment of your swing can, rarely, take one away. Out of combat the count is checked against the real buffs.
 
 **Move it** by unlocking frames (`/lb unlock`). It shows a sample while unlocked.
 

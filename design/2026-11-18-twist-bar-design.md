@@ -27,7 +27,7 @@ before the 4th swing, swap back) is hard to time by eye. The bar shows the rhyth
 - Stacks are counted: a main-hand swing with seal S stores one of S (max 3, refreshed 15 s). A swing
   while stacks are of another seal consumes them (burst) and stores one of the current seal.
   15 s without a swing clears them. Out of combat the Echo auras correct the count.
-  Known limit: a missed/dodged swing counts as a stack (no combat log).
+  A swing whose target shows MISS/DODGE/PARRY (UNIT_COMBAT "target", same moment, tested in game) is taken back.
 - Seal changes come only from spellbook seal casts (IsPlayerSpell); the 20424-style procs are ignored.
   The same check goes into SealTimer.lua, which today restarts its 30 s timer on every Command proc.
 - Bar: seal icon, 3 pips (gold at 3), swing fill toward the next swing. At 3 stacks of the build seal,
