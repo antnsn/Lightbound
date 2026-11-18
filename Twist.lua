@@ -3,8 +3,9 @@
 --    (a native AuraContainer writes the true stack count into our bar, in combat too, while Lua can't
 --    read it). Where that isn't available, counted pips from TwistLogic.lua are shown instead.
 --  * Bar: fills toward your next main-hand swing (PLAYER_SWING). As soon as three copies of the build
---    seal are stored it says SWAP: they last 15 s, so swapping early only makes the burst come sooner.
+--    seal are stored it says TWIST: they last 15 s, so swapping early only makes the burst come sooner.
 --  * Judgement and Holy Strike icons with their cooldown.
+-- When it's time to change seals (three stored, and again after the burst) TWIST pulses above the bar.
 -- Shown in combat for paladins who have Unsealed Wrath.
 local _, ns = ...
 if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
@@ -36,12 +37,12 @@ local AVOIDED = { MISS = true, DODGE = true, PARRY = true, EVADE = true, IMMUNE 
 
 local state = L.New()
 local f, bar, sealIcon, text, flash, pips, cdIcons
+local call -- big pulsing TWIST above the bar, for the two moments you act (one key with /castsequence)
 local PIPS_W = L.MAX * (PIP * 2) + (L.MAX - 1) * 3
 local echo = {}         -- [seal] = { bar } from the native display, once it is set up
 local native = nil      -- nil = not tried yet, true = Blizzard draws the true stacks, false = counted pips
 local known = false     -- Unsealed Wrath learned, or its Echo buff seen since the last talent change
 local seenEcho = false
-local windowOpen = false -- SWAP is showing (sound once each time)
 
 local function IsSeal(name) return name and name:find("^Seal of") ~= nil end
 local function Short(name) return name and (name:gsub("^Seal of t?h?e? ?", "")) or "" end
@@ -144,6 +145,18 @@ local function UpdateIcons()
 end
 
 -- Drawing ---------------------------------------------------------------------------
+local function Call(msg)
+	if msg then
+		call:SetText(msg)
+		if not call:IsShown() then
+			call:Show(); call.pulse:Play()
+			if ns.db.twistSound and not ns.unlocked then PlaySound(SOUNDKIT.RAID_WARNING, "Master") end
+		end
+	elseif call:IsShown() then
+		call.pulse:Stop(); call:SetAlpha(1); call:Hide()
+	end
+end
+
 local function SetPips(n, seal)
 	local c = COLORS[seal] or ns.UI.C.accent
 	for i, p in ipairs(pips) do
@@ -194,11 +207,9 @@ local function Draw(now)
 
 	local accent = ns.UI.C.accent
 	if mode == "swap" then
-		text:SetText("SWAP » " .. Short(burst)); text:SetTextColor(unpack(accent))
-		if not windowOpen and db.twistSound then PlaySound(SOUNDKIT.RAID_WARNING, "Master") end
-		windowOpen = true
+		Call("TWIST"); text:SetText("» " .. Short(burst)); text:SetTextColor(unpack(accent))
 	else
-		windowOpen = false
+		Call(mode == "back" and "TWIST" or nil)
 		if mode == "burst" then text:SetText("swing!"); text:SetTextColor(unpack(accent))
 		elseif mode == "back" then text:SetText("» " .. Short(build)); text:SetTextColor(unpack(accent))
 		elseif mode == "noseal" then text:SetText("NO SEAL"); text:SetTextColor(1, 0.25, 0.25)
@@ -212,8 +223,7 @@ local function DrawSample()
 	bar:SetValue(0.85); bar:SetStatusBarColor(0.90, 0.30, 0.25, 0.9)
 	sealIcon:SetTexture(Texture(ns.db.twistBuild)); sealIcon:SetDesaturated(false)
 	SetPips(3, ns.db.twistBuild)
-	local a = ns.UI.C.accent
-	text:SetText("SWAP » " .. Short(ns.db.twistBurst)); text:SetTextColor(unpack(a))
+	Call("TWIST"); text:SetText("» " .. Short(ns.db.twistBurst)); text:SetTextColor(unpack(ns.UI.C.accent))
 	UpdateIcons()
 end
 
@@ -306,7 +316,7 @@ function M:Update(entering)
 	local db = ns.db
 	local fighting = entering or ns.InCombat()
 	if not db.twist or not known or not fighting or UnitIsDeadOrGhost("player") then
-		f:Hide(); windowOpen = false
+		f:Hide(); Call(nil)
 		return
 	end
 	f:Show()
@@ -346,6 +356,19 @@ function M:Init()
 	text = bar:CreateFontString(nil, "OVERLAY")
 	ns.UI.SetFont(text, "narrow", 12, "OUTLINE")
 	text:SetPoint("CENTER", bar, "CENTER", 0, 0)
+
+	call = f:CreateFontString(nil, "OVERLAY")
+	ns.UI.SetFont(call, "narrow", 22, "OUTLINE")
+	call:SetPoint("BOTTOM", f, "TOP", 0, 6)
+	call:SetTextColor(unpack(ns.UI.C.accent))
+	call:Hide()
+	call.pulse = call:CreateAnimationGroup()
+	call.pulse:SetLooping("BOUNCE")
+	local pa = call.pulse:CreateAnimation("Alpha")
+	pa:SetFromAlpha(1); pa:SetToAlpha(0.35); pa:SetDuration(0.45)
+	local ps = call.pulse:CreateAnimation("Scale")
+	if ps.SetScaleFrom then ps:SetScaleFrom(1, 1); ps:SetScaleTo(1.12, 1.12) else ps:SetScale(1.12, 1.12) end
+	ps:SetDuration(0.45)
 
 	-- a short flash over the bar when stored copies are used (or Command procs)
 	flash = bar:CreateTexture(nil, "OVERLAY", nil, 7)
@@ -420,13 +443,13 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	local p = UI.NewPage("Twist", "Unsealed Wrath: stored seal copies and when to swap, on a swing bar. Shown in combat when you have the talent.")
 	local CW = UI.CONTENT_W
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twist", "Show the twist bar",
-		"Three pips for the copies your swings store, and SWAP as soon as you have three.")) + 14)
+		"Three pips for the copies your swings store, and TWIST above the bar each time you change seals.")) + 14)
 	p:Add(select(2, UI.Cycle(p, p.y, "Build with", SEALS,
 		function() return ns.db.twistBuild end, function(v) ns.db.twistBuild = v end)) + 4)
 	p:Add(select(2, UI.Cycle(p, p.y, "Swap to", SEALS,
 		function() return ns.db.twistBurst end, function(v) ns.db.twistBurst = v end)) + 8)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistCDs", "Judgement and Holy Strike icons")) + 6)
-	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistSound", "Sound when it's time to swap")) + 6)
+	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistSound", "Sound when it's time to twist")) + 6)
 	local n = UI.Font(p, 12, UI.C.dim)
 	n:SetPoint("TOPLEFT", 0, p.y - 4); n:SetPoint("RIGHT", p, "RIGHT")
 	n:SetText("The pips are drawn by the game from your Echo buff. The swap advice is counted from your swings, leaving out a miss, dodge or parry on your target.")
