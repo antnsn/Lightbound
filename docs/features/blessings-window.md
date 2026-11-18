@@ -23,12 +23,26 @@ One window decides which blessing every paladin gives every class, so paladins i
 
 1. Open the window with `/lb blessings`, a right-click on the minimap button, or the **Open blessings** button on the **Buff key** page of `/lb`.
 2. **Left-click** a cell to step to the next blessing, **right-click** to step back. A dash (`-`) means nothing from that paladin.
-3. To give one player a different blessing than the rest of their class, **Shift-click** the class cell. A list of that class's players opens. Click a name to step through blessings for that player, or back to "class blessing". The cell then shows a small `+1`, `+2`...
+3. To give one player a different blessing than the rest of their class, use the **Players** tab (below), or **Shift-click** the class cell for a quick list of that class's players. The class cell then shows a small `+1`, `+2`...
 4. Click the **Aura** cell to set the aura that paladin keeps up.
 5. Click the **Judgement** cell to set which Judgement that paladin keeps on the boss (see [Judgements](judgements.html)).
 6. Close the window with the X or Esc.
 
 ![The Blessings window with several paladins]({{ '/screenshots/raid-blessings.png' | relative_url }})
+
+### The Players tab
+
+The **Classes** and **Players** buttons at the top switch between the class grid and one line per player in your group. The window remembers which one you used last.
+
+- Each line shows the player, their class, the blessing **you** give them, and a **Tank** box.
+- **Grey** means the player gets your class blessing (or the tank line, for a tank). **Gold** means a blessing for that player only.
+- **Left-click** the blessing to step to the next one, **right-click** to step back. **Shift-click** makes the player follow the class again.
+- A player with their own blessing no longer counts as missing the class blessing, and the buff key casts theirs instead. Someone who asks for Kings while their class gets Might keeps Kings.
+- The **Tank** box puts the player on the tank list, the same list as the **Tanks** page in `/lb`. A tank found by role, main tank or main assist is marked next to the class.
+- In a raid the list is sorted by group and scrolls with the mouse wheel.
+- **Follow class for all** at the bottom drops your per-player blessings for everyone in the group.
+
+Per-player blessings are shared with the other paladins, the same way as PallyPower's.
 
 ### The buttons at the bottom
 

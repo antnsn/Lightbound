@@ -266,6 +266,179 @@ end
 
 local Refresh -- defined below; the tank line calls it
 
+-- Players tab ----------------------------------------------------------------------------
+-- One line per group member: the blessing YOU give them, and the tank mark. Grey = follows the
+-- class (or the tank line), gold = a blessing for that player only (PallyPower's per-player
+-- assignment, shared like the rest). Click to change, Shift-click to follow the class again.
+local P_ROW, P_VISIBLE = 26, 12
+local P_NAME_X, P_CLASS_X, P_BLESS_X, P_TANK_X = 8, 190, 320, 520
+local pScroll, pChild, pLines = nil, nil, {}
+
+local function Short(name) return name and (strsplit("-", name)) or name end
+
+-- the per-player blessing number from you for this member, or nil (tries "Name-Realm" and "Name")
+local function Override(cid, name)
+	local me = ns.MyName()
+	return ns.GetNormalAssign(me, cid, name) or ns.GetNormalAssign(me, cid, Short(name))
+end
+
+local function Members()
+	local list, raid = {}, IsInRaid()
+	for _, unit in ipairs(ns.PB.Units()) do
+		if UnitExists(unit) then
+			local name = GetUnitName(unit, true) or UnitName(unit)
+			local _, class = UnitClass(unit)
+			local group = 1
+			if raid then
+				-- the roster index for this unit ("player" has no raidN token in the unit list)
+				local n = tonumber(unit:match("^raid(%d+)$"))
+				if not n then
+					for i = 1, GetNumGroupMembers() do
+						if UnitIsUnit("raid" .. i, unit) then n = i break end
+					end
+				end
+				group = n and select(3, GetRaidRosterInfo(n)) or 1
+			end
+			if name and class then list[#list + 1] = { unit = unit, name = name, class = class, group = group } end
+		end
+	end
+	table.sort(list, function(a, b)
+		if a.group ~= b.group then return a.group < b.group end
+		return a.name < b.name
+	end)
+	return list, raid
+end
+
+local function PlayerLine(i)
+	local UI = ns.UI
+	local l = CreateFrame("Frame", nil, pChild)
+	l:SetSize(TOTAL_W - 16, P_ROW)
+	l.stripe = UI.Tex(l, "BACKGROUND", UI.C.side); l.stripe:SetAllPoints()
+	l.name = UI.Font(l, 13, UI.C.text); l.name:SetPoint("LEFT", P_NAME_X, 0); l.name:SetWidth(P_CLASS_X - P_NAME_X - 8)
+	l.name:SetJustifyH("LEFT"); l.name:SetWordWrap(false)
+	l.class = UI.Font(l, 12, UI.C.dim); l.class:SetPoint("LEFT", P_CLASS_X, 0)
+	l.header = UI.Font(l, 11, UI.C.accent); l.header:SetPoint("LEFT", P_NAME_X, -2)
+	local b = UI.Button(l, "", 180, 22)
+	b:SetPoint("LEFT", P_BLESS_X, 0)
+	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	b.label:SetJustifyH("LEFT"); b.label:ClearAllPoints(); b.label:SetPoint("LEFT", 28, 0); b.label:SetPoint("RIGHT", -6, 0)
+	b.icon = b:CreateTexture(nil, "OVERLAY"); b.icon:SetSize(18, 18); b.icon:SetPoint("LEFT", 4, 0)
+	b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	b:SetScript("OnClick", function(_, button)
+		local cid, name = l.cid, l.key
+		if not cid then return end
+		local me = ns.MyName()
+		local idx = 0 -- Shift-click: follow the class
+		if not IsShiftKeyDown() then
+			idx = Step(BlessOptions(me), Override(cid, name) or 0, button == "RightButton" and -1 or 1)
+		end
+		ns.SetNormalAssign(me, cid, name, idx)
+		-- an entry under the short name (PallyPower sends those) would win back when this one is cleared
+		local short = Short(name)
+		if short ~= name and ns.GetNormalAssign(me, cid, short) then ns.SetNormalAssign(me, cid, short, 0) end
+		Refresh()
+	end)
+	b:HookScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(l.key or "")
+		if l.tip then GameTooltip:AddLine(l.tip, 1, 1, 1) end
+		GameTooltip:AddLine("Left/right-click: a blessing for this player only.", 0.7, 0.7, 0.7)
+		GameTooltip:AddLine("Shift-click: follow the class again.", 0.7, 0.7, 0.7)
+		GameTooltip:Show()
+	end)
+	b:HookScript("OnLeave", function() GameTooltip:Hide() end)
+	l.bless = b
+	l.tank = UI.Toggle(l, P_TANK_X, -2, 90, "Tank", nil,
+		function()
+			if not l.key then return false end
+			local _, how = ns.IsTankName(l.key)
+			return how == "list" -- the mark; a tank found by role or main tank is noted by the class
+		end,
+		function(v) if l.key then ns.SetTank(l.key, v); Refresh() end end)
+	pLines[i] = l
+	return l
+end
+
+local function RefreshPlayers()
+	local UI = ns.UI
+	local list, raid = Members()
+	local me = ns.MyName()
+	local n, lastGroup, y = 0, nil, 0
+	local function Next()
+		n = n + 1
+		local l = pLines[n] or PlayerLine(n)
+		l:ClearAllPoints(); l:SetPoint("TOPLEFT", 0, -y)
+		y = y + P_ROW
+		l:Show()
+		return l
+	end
+	for idx, m in ipairs(list) do
+		if raid and m.group ~= lastGroup then
+			lastGroup = m.group
+			local h = Next()
+			h.cid, h.key, h.tip = nil, nil, nil
+			h.header:SetText("GROUP " .. m.group); h.header:Show()
+			h.name:Hide(); h.class:Hide(); h.bless:Hide(); h.tank:Hide()
+			h.stripe:SetAlpha(0)
+		end
+		local l = Next()
+		l.header:Hide(); l.name:Show(); l.class:Show(); l.bless:Show(); l.tank:Show()
+		l.stripe:SetColorTexture(unpack(UI.C.side)); l.stripe:SetAlpha(idx % 2 == 0 and 0.5 or 1)
+		local cid = ns.PP_CLASS[m.class]
+		l.cid, l.key = cid, m.name
+		local cc = RAID_CLASS_COLORS and RAID_CLASS_COLORS[m.class]
+		l.name:SetText((m.name == me and (UI.Hex(UI.C.dim) .. "(you) |r") or "") .. m.name)
+		if cc then l.name:SetTextColor(cc.r, cc.g, cc.b) end
+		local cname = (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[m.class]) or m.class
+		local isTank, how = ns.IsTank(m.unit)
+		l.class:SetText(cname .. ((isTank and how ~= "list") and (UI.Hex(UI.C.accent) .. " · " .. how .. "|r") or ""))
+		-- what the buff key gives them (after the tank line), and where that comes from
+		-- source: what was picked before the tank line (own blessing, else the class) against what
+		-- the buff key really casts; a difference means the tank line replaced it
+		local key = ns.PB.Assignment(m.unit, m.class)
+		local own = cid and Override(cid, m.name)
+		if own and not ns.PP_SPELL[own] then own = nil end
+		local base = ns.PP_SPELL[own or (cid and ns.GetAssign(me, cid)) or 0]
+		local why
+		if key ~= base then why = "tank line"
+		elseif own then why = "only this player"
+		else why = "class" end
+		local b = l.bless
+		if key then
+			b.icon:SetTexture(BlessTexture(ns.PP_SPELL_ID[key])); b.icon:Show()
+			local color = why == "only this player" and UI.C.accent or UI.C.dim
+			b:SetLabel(UI.Hex(color) .. key .. "|r" .. UI.Hex(UI.C.dim) .. "  (" .. why .. ")|r")
+		else
+			b.icon:Hide()
+			b:SetLabel(UI.Hex(UI.C.dim) .. "nothing from you  (" .. why .. ")|r")
+		end
+		l.tip = key and ("Gets Blessing of " .. key .. " from you (" .. why .. ").") or "Gets nothing from you."
+		l.tank.Sync()
+	end
+	for i = n + 1, #pLines do pLines[i]:Hide() end
+	pChild:SetHeight(math.max(y, 1))
+	local view = math.min(y, P_VISIBLE * P_ROW)
+	pScroll:SetHeight(math.max(view, P_ROW))
+	local max = math.max(y - view, 0)
+	if pScroll:GetVerticalScroll() > max then pScroll:SetVerticalScroll(max) end
+	return math.max(view, P_ROW)
+end
+
+-- your per-player blessings for everyone in the group back to "follow the class"
+local function FollowClassForAll()
+	local me = ns.MyName()
+	for _, m in ipairs((Members())) do
+		local cid = ns.PP_CLASS[m.class]
+		if cid and Override(cid, m.name) then
+			if ns.GetNormalAssign(me, cid, m.name) then ns.SetNormalAssign(me, cid, m.name, 0) end
+			local short = Short(m.name)
+			if short ~= m.name and ns.GetNormalAssign(me, cid, short) then ns.SetNormalAssign(me, cid, short, 0) end
+		end
+	end
+	Refresh()
+end
+
+
 local function CdText(c)
 	if not c or not c.known then return nil end
 	local left = (c.readyAt or 0) - GetTime()
@@ -405,9 +578,18 @@ local function MakeRow(i)
 	return r
 end
 
+local SetTab -- defined in Build
+
 function Refresh()
 	if not win or not win:IsShown() then return end
 	local UI = ns.UI
+	if ns.db.rwTab == "players" then
+		local h = RefreshPlayers()
+		win:SetHeight(COLS_Y + 34 + h + FOOTER_H + 10)
+		win.status:SetText(IsInGroup() and "Your blessing for each player. Grey follows the class, gold is for that player only."
+			or "Not in a group: players show up here when you group.")
+		return
+	end
 	local list = ns.GroupPaladins()
 	local me = ns.MyName()
 	local y = 0
@@ -543,6 +725,14 @@ local function Build()
 	local logo = head:CreateTexture(nil, "ARTWORK"); logo:SetSize(34, 34); logo:SetPoint("LEFT", 8, -2)
 	logo:SetTexture(UI.MEDIA .. "Logo64")
 	local title = UI.Title(head, 15); title:SetPoint("LEFT", logo, "RIGHT", 6, 0); title:SetText("Lightbound")
+	-- tabs: the class grid, or one line per player
+	local tabPlayers = UI.Button(head, "Players", 90, 24)
+	tabPlayers:SetPoint("RIGHT", -40, 0)
+	local tabClasses = UI.Button(head, "Classes", 90, 24)
+	tabClasses:SetPoint("RIGHT", tabPlayers, "LEFT", -6, 0)
+	win.tabs = { classes = tabClasses, players = tabPlayers }
+	tabClasses:SetScript("OnClick", function() SetTab("classes") end)
+	tabPlayers:SetScript("OnClick", function() SetTab("players") end)
 
 	-- column headers
 	local cols = CreateFrame("Frame", nil, win)
@@ -562,6 +752,24 @@ local function Build()
 	win.body = CreateFrame("Frame", nil, win)
 	win.body:SetPoint("TOPLEFT", PAD, -COLS_Y - 16)
 	win.body:SetSize(TOTAL_W, 10)
+	win.cols = cols
+
+	-- Players tab: column headers and a scrolling list
+	local pcols = CreateFrame("Frame", nil, win)
+	pcols:SetPoint("TOPLEFT", PAD, -COLS_Y + 14); pcols:SetSize(TOTAL_W, 26)
+	for _, h in ipairs({ { P_NAME_X, "PLAYER" }, { P_CLASS_X, "CLASS" }, { P_BLESS_X, "FROM YOU" }, { P_TANK_X, "TANK" } }) do
+		local t = UI.Font(pcols, 12, C.dim); t:SetPoint("LEFT", h[1], 0); t:SetText(h[2])
+	end
+	win.pcols = pcols
+	pScroll = CreateFrame("ScrollFrame", nil, win)
+	pScroll:SetPoint("TOPLEFT", PAD, -COLS_Y - 16); pScroll:SetSize(TOTAL_W, P_ROW)
+	pChild = CreateFrame("Frame", nil, pScroll); pChild:SetSize(TOTAL_W, 1)
+	pScroll:SetScrollChild(pChild)
+	pScroll:EnableMouseWheel(true)
+	pScroll:SetScript("OnMouseWheel", function(self, d)
+		local max = math.max(pChild:GetHeight() - self:GetHeight(), 0)
+		self:SetVerticalScroll(math.max(0, math.min(max, self:GetVerticalScroll() - d * P_ROW * 2)))
+	end)
 
 	local footer = CreateFrame("Frame", nil, win)
 	footer:SetPoint("BOTTOMLEFT"); footer:SetPoint("BOTTOMRIGHT"); footer:SetHeight(FOOTER_H)
@@ -594,11 +802,31 @@ local function Build()
 	clear:SetPoint("TOPRIGHT", -16, -8)
 	clear:SetScript("OnClick", function() ns.ClearAssignments() end)
 	Tip(clear, "Clear", "Empty every row you can change (only your own unless you're leader or assist).")
+	local follow = UI.Button(footer, "Follow class for all", 160, 26)
+	follow:SetPoint("TOPLEFT", 16, -8)
+	follow:SetScript("OnClick", FollowClassForAll)
+	Tip(follow, "Follow class for all", "Drop your per-player blessings for everyone in the group: they get the class blessing again.")
+	win.classOnly = { auto, sync, open, clear }
+	win.follow = follow
+
+	SetTab = function(tab)
+		ns.db.rwTab = tab
+		local players = tab == "players"
+		for _, w in ipairs(win.classOnly) do w:SetShown(not players) end
+		win.follow:SetShown(players)
+		win.cols:SetShown(not players); win.body:SetShown(not players)
+		win.pcols:SetShown(players); pScroll:SetShown(players)
+		if popup then popup:Hide() end
+		win.tabs.classes:SetAlpha(players and 0.6 or 1)
+		win.tabs.players:SetAlpha(players and 1 or 0.6)
+		Refresh()
+	end
+
 	win.status = UI.Font(footer, 11, C.dim)
 	win.status:SetPoint("BOTTOMLEFT", 16, 6); win.status:SetPoint("RIGHT", -16, 0)
 
 	win:SetScript("OnShow", function()
-		ns.RequestSync(); Refresh()
+		ns.RequestSync(); SetTab(ns.db.rwTab == "players" and "players" or "classes")
 		win.ticker = win.ticker or C_Timer.NewTicker(1, function() if win:IsShown() then Refresh() end end)
 	end)
 end
