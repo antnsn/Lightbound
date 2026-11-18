@@ -122,11 +122,13 @@ local function OnAura()
 	local started = now and not drinking
 	drinking = now
 	if not (started and ns.db.drinkAnnounce and IsInGroup()) then return end
+	if ns.db.drinkInstanceOnly then
+		local _, kind = IsInInstance()
+		if kind ~= "party" and kind ~= "raid" then return end
+	end
 	if GetTime() - lastDrinkSay < 20 then return end
 	lastDrinkSay = GetTime()
-	local msg = "Drinking"
-	local mana, max = Safe(UnitPower, "player", 0), Safe(UnitPowerMax, "player", 0)
-	if mana and max and max > 0 then msg = ("Drinking (%d%% mana)"):format(math.floor(mana / max * 100 + 0.5)) end
+	local msg = "Drinking" -- no mana percent: Forever keeps your mana hidden from addons
 	if ChatLocked() then Local(msg) return end
 	local chan = IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY"
 	pcall(SendChatMessage, msg, chan)
@@ -348,5 +350,6 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "rezWhisper", "Also whisper the target")) + 6)
 	p:Add(UI.Section(p, p.y, "Drinking") + 6)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "drinkAnnounce", "Say when you drink",
-		"\"Drinking (34% mana)\" in party chat when you sit down to drink in a group.")) + 6)
+		"\"Drinking\" in party chat when you sit down to drink in a group.")) + 6)
+	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "drinkInstanceOnly", "Only in dungeons and raids")) + 6)
 end

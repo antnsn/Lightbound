@@ -65,7 +65,7 @@ ns.defaults = {
 	rqPoint = { "CENTER", "UIParent", "CENTER", 380, -40 },
 	diEnabled = true, diParty = false, diRows = 6, diAnnounce = true, diWarning = true,
 	diPoint = { "CENTER", "UIParent", "CENTER", 380, -220 },
-	rezAnnounce = true, rezWhisper = false, drinkAnnounce = false,
+	rezAnnounce = true, rezWhisper = false, drinkAnnounce = false, drinkInstanceOnly = true,
 	tankGuard = true, tankList = {},
 	tankBless = { WARRIOR = "Might", DRUID = "Might", PALADIN = "Kings", HUNTER = "Kings", ROGUE = "Kings",
 		PRIEST = "Kings", SHAMAN = "Kings", MAGE = "Kings", WARLOCK = "Kings" },
