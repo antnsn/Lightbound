@@ -12,6 +12,7 @@ Group.lua
 RighteousFury.lua
 SealTimer.lua
 WellRested.lua
+Carrot.lua
 Auras.lua
 Blessings.lua
 PartyBuff.lua

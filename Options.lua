@@ -377,6 +377,20 @@ local function BuildRested()
 	end
 	Timer("Well-Rested", "wellRested", function() ns.TestWellRested() end, "Cozy Sleeping Bag buff.")
 	Timer("Well Fed", "wellFed", function() ns.TestWellFed() end, "Food buff, also more experience on Forever. Also tells you when it's gone.")
+
+	p:Add(Section(p, p.y - 4, "Carrot on a Stick") + 2)
+	-- one row (the page has no room for two): Off, or the trinket slot the carrot goes into
+	local CARROT_CHOICES = { "Off", "Top trinket", "Bottom trinket" }
+	p:Add(select(2, Cycle(p, p.y, "Wear it while mounted", CARROT_CHOICES,
+		function() return ns.db.carrotSwap and (ns.db.carrotSlot .. " trinket") or "Off" end,
+		function(v)
+			ns.db.carrotSwap = v ~= "Off"
+			if v ~= "Off" then ns.db.carrotSlot = v:match("^(%a+)") end
+		end,
+		function()
+			if not ns.db.carrotSwap then return "Your own trinket goes back on when you get off." end
+			return "Swaps out: " .. ns.CarrotSlotItem(ns.db.carrotSlot)
+		end)))
 end
 
 local function BuildSkin()

@@ -1,5 +1,10 @@
 # Lightbound changelog
 
+## Unreleased
+
+- Carrot on a Stick (page Extras, off by default): worn while you're mounted, in the trinket slot you pick, and your own trinket goes back on when you get off. Not in instances; waits until combat is over.
+- Lightbound.toc loads a new file, so update with the game closed.
+
 ## 4.5
 
 - Skins: pick how Lightbound looks on the new Skin page in `/lb`. Lightbound (the gold look, default), Blizzard (the game's own grey and silver frames) or Flat (thin black edges on dark grey, to sit next to EllesmereUI or ElvUI). A new skin applies after a reload. Colours that mean something (missing, debuff types, class colours) stay the same in every skin.

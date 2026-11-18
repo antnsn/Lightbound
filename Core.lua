@@ -57,6 +57,7 @@ ns.defaults = {
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",
 		SHAMAN = "Wisdom", MAGE = "Wisdom", WARLOCK = "Wisdom", DRUID = "Wisdom" },
 	pbPoint = { "CENTER", "UIParent", "CENTER", 0, -260 },
+	carrotSwap = false, carrotSlot = "Bottom", carrotPrev = {},
 	clEnabled = true, clSolo = true, clSound = true, clRows = 5, clPets = false, clIgnore = {},
 	clMode = "Grid", clPerRow = 5, clCell = 22, clNames = false, clRange = true,
 	clPoint = { "TOPLEFT", "UIParent", "CENTER", 285, 190 },

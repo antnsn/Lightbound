@@ -2,7 +2,7 @@
 title: Quality of life
 parent: Features
 nav_order: 9
-description: Reagent shopping, the minimap button, and moving and resizing every frame.
+description: Reagent shopping, the minimap button, Carrot on a Stick while mounted, and moving and resizing every frame.
 ---
 
 # Quality of life
@@ -28,6 +28,10 @@ The small things: never run out of Symbols of Kings, open Lightbound from the mi
 | Drag | Moves the button around the minimap. |
 
 Where the game has an addon menu (the puzzle-piece button), Lightbound is listed there too, with the same clicks. The game's **Settings > AddOns** list also has a Lightbound entry with an **Open options** button.
+
+### Carrot on a Stick
+
+Turn it on and pick a trinket slot, and Lightbound puts Carrot on a Stick on when you mount and your own trinket back when you get off. It needs the carrot in your bags. It does nothing in instances, and in combat it waits until the fight is over, since the game blocks gear changes then. If you change that trinket yourself while riding, Lightbound leaves it alone.
 
 ### Moving and resizing frames
 
@@ -72,6 +76,7 @@ In `/lb`, page **Extras**:
 | Setting | Default | What it does |
 | --- | --- | --- |
 | Minimap button (left-click options, right-click blessings) | On | Shows or hides the minimap button. Also `/lb minimap`. |
+| Wear it while mounted (Carrot on a Stick) | Off | Off, Top trinket or Bottom trinket: the slot the carrot goes into when you mount. Your own trinket goes back on when you get off; an empty slot is emptied again (the carrot goes into a bag). |
 
 The grid has no options page. Change it on the bar shown while frames are unlocked, or with `/lb grid`:
 
