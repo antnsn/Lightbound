@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Announce: "Say when you drink" posts "Drinking (34% mana)" in party chat when you start drinking in a group. Off by default, under Announce.
 - Blessings window: a new **Players** tab with one line per player. Set a blessing for one player only (grey follows the class, gold is that player's own), and mark tanks right there. A player with their own blessing no longer counts as missing the class blessing.
 - Carrot on a Stick (page Extras, off by default): worn while you're mounted, in the trinket slot you pick, and your own trinket goes back on when you get off. Not in instances; waits until combat is over.
 - Lightbound.toc loads a new file, so update with the game closed.

@@ -30,6 +30,7 @@ Know which paladin still has Blessing of Protection or Divine Shield, put Divine
 
 - **Divine Intervention**: when your Divine Intervention goes off, Lightbound says "Divine Intervention on *name*!" in raid or party chat. As leader or assist in a raid it uses a raid warning.
 - **Redemption**: as soon as you **start casting** Redemption, Lightbound says "Resurrecting *name*" in party or raid chat, so the player knows to wait for it. It can also whisper them "Resurrecting you".
+- **Drinking**: when you sit down to drink in a group, Lightbound can say "Drinking (34% mana)" in party chat, so the group knows to wait. It says it once per drink. Off by default.
 
 ## How to use it
 
@@ -69,6 +70,12 @@ In `/lb`, page **Announce**:
 | --- | --- | --- |
 | Announce resurrections | On | "Resurrecting *name*" in party or raid chat when you start casting Redemption. |
 | Also whisper the target | Off | Whispers "Resurrecting you" to the player. |
+
+**Drinking**
+
+| Setting | Default | What it does |
+| --- | --- | --- |
+| Say when you drink | Off | "Drinking (34% mana)" in party chat when you start drinking in a group. In a raid it goes to your own group. |
 
 ## Good to know
 

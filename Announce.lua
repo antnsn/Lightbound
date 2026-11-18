@@ -3,6 +3,7 @@
 --    Divine Intervention on that player, in combat too. Rows are secure buttons set up out of combat;
 --    in combat the row -> unit mapping stays fixed and only names and dimming are redrawn.
 --  * Chat announcements for Divine Intervention (raid warning for leaders/assists) and Redemption.
+--  * "Drinking" in party chat when you sit down to drink in a group.
 local _, ns = ...
 if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
 
@@ -107,6 +108,28 @@ local function OnRez()
 	lastRez[key] = now
 	if db.rezAnnounce then Announce("Resurrecting " .. (target and Short(target) or "a fallen ally"), false) end
 	if db.rezWhisper and target and not ChatLocked() then pcall(SendChatMessage, "Resurrecting you", "WHISPER", nil, target) end
+end
+
+-- Drinking: said once when a drink buff appears (not again for a quick second drink)
+local DRINKS = { "Drink", "Food & Drink", "Refreshment" }
+local drinking, lastDrinkSay = false, -999
+
+local function OnAura()
+	local buffs, hidden = ns.ReadPlayerBuffs()
+	local now = false
+	for _, n in ipairs(DRINKS) do if buffs[n] then now = true end end
+	if not now and hidden then return end -- list incomplete: keep what we had
+	local started = now and not drinking
+	drinking = now
+	if not (started and ns.db.drinkAnnounce and IsInGroup()) then return end
+	if GetTime() - lastDrinkSay < 20 then return end
+	lastDrinkSay = GetTime()
+	local msg = "Drinking"
+	local mana, max = Safe(UnitPower, "player", 0), Safe(UnitPowerMax, "player", 0)
+	if mana and max and max > 0 then msg = ("Drinking (%d%% mana)"):format(math.floor(mana / max * 100 + 0.5)) end
+	if ChatLocked() then Local(msg) return end
+	local chan = IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY"
+	pcall(SendChatMessage, msg, chan)
 end
 
 -- Picker ----------------------------------------------------------------------------
@@ -273,12 +296,14 @@ function M:Init()
 	for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_ENABLED", "SPELLS_CHANGED" }) do
 		ev:RegisterEvent(e)
 	end
+	ev:RegisterUnitEvent("UNIT_AURA", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SENT", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_FAILED", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_INTERRUPTED", "player")
 	ev:SetScript("OnEvent", function(_, event, _, a2, a3, a4)
+		if event == "UNIT_AURA" then OnAura() return end
 		if event == "UNIT_SPELLCAST_SENT" then -- unit, target, castGUID, spellID
 			local name = ns.SpellName(a4)
 			if name == DI or name == REZ then sent = { spell = name, name = Clean(a2), at = GetTime() } end
@@ -298,6 +323,7 @@ function M:Init()
 			if name == nil or name == DI or name == REZ then sent, lastDITarget = nil, nil end
 			return
 		end
+		if event == "PLAYER_REGEN_ENABLED" then OnAura() end -- a drink cut short by combat is over now
 		M:Update()
 	end)
 	C_Timer.NewTicker(1, function() if frame:IsShown() then M:Update() end end) -- range and deaths
@@ -320,4 +346,7 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "rezAnnounce", "Announce resurrections",
 		"\"Resurrecting <name>\" in party or raid chat when you start casting Redemption.")) + 6)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "rezWhisper", "Also whisper the target")) + 6)
+	p:Add(UI.Section(p, p.y, "Drinking") + 6)
+	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "drinkAnnounce", "Say when you drink",
+		"\"Drinking (34% mana)\" in party chat when you sit down to drink in a group.")) + 6)
 end
