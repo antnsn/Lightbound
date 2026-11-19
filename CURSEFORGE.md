@@ -36,7 +36,7 @@ Every version's changes are in the changelog at the bottom of this page.
 - **Paladin cooldowns.** Every paladin's Blessing of Protection, Freedom and Sacrifice, Divine Shield and Divine Protection, plus your own Forbearance. Shared between Lightbound users.
 - **Divine Intervention picker.** In raids, a short list of healers. Click one to cast Divine Intervention on them, in combat too. Shift-click pins a preferred target. The cast is announced in raid chat.
 - **Resurrection announce.** "Resurrecting <name>" in party or raid chat when you start casting Redemption.
-- **Drinking announce.** "Drinking" in party chat when you sit down to drink (optional, dungeons and raids only by default).
+- **Drinking announce.** "Drinking" in party chat when you sit down to drink (optional, dungeons and raids only by default). Best effort: spotted by the drink buff's name.
 
 ## Retribution: twist bar
 For Unsealed Wrath. Each swing stores a copy of your seal, up to three, and a swing with another seal uses them all. The bar shows the stored copies (drawn by the game from your Echo buff, so always right), a swing timer, and a pulsing **TWIST** when it's time to swap seals and to swap back. Judgement and Holy Strike cooldowns sit next to it. One-key macro on the wiki.

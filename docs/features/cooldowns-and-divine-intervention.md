@@ -79,7 +79,7 @@ In `/lb`, page **Announce**:
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| Say when you drink | Off | "Drinking" in party chat when you start drinking in a group. In a raid it goes to your own group. |
+| Say when you drink | Off | "Drinking" in party chat when you start drinking in a group. In a raid it goes to your own group. Best effort: Lightbound spots the drink by its buff's name ("Drink", "Food & Drink", "Refreshment"), so a drink with another name is missed. |
 | Only in dungeons and raids | On | Stay quiet when you drink in a group out in the world. |
 
 ## Good to know
