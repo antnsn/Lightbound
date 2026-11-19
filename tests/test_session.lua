@@ -310,6 +310,18 @@ local function Session(scenario)
 	Fire("PLAYER_REGEN_ENABLED")
 	Advance(1)
 
+	-- and back to the Retribution loadout: the talent is there again
+	if scenario ~= "notalent" then state.known["Unsealed Wrath"] = nil end
+	Fire("TRAIT_CONFIG_UPDATED")
+	SetAuras(With(base, seal))
+	state.inCombat = true
+	Fire("PLAYER_REGEN_DISABLED")
+	Advance(0.5)
+	result.twistBackToRet = Shown("LightboundTwistFrame")
+	state.inCombat = false
+	Fire("PLAYER_REGEN_ENABLED")
+	Advance(1)
+
 	-- a second ride
 	state.mounted = true
 	Fire("PLAYER_MOUNT_DISPLAY_CHANGED")
@@ -341,6 +353,7 @@ for _, scenario in ipairs({ "missing", "off", "buffed", "notalent", "secret" }) 
 	Expect(scenario, result, "twistAfterRelog", true) -- remembered per character
 	-- after a respec the bar goes; when the lookup never worked the memory stays (can't tell a respec from login)
 	Expect(scenario, result, "twistAfterRespec", scenario == "notalent")
+	Expect(scenario, result, "twistBackToRet", true) -- the loadout with the talent again
 end
 
 if failed > 0 then io.write(failed, " check(s) failed\n") os.exit(1) end
