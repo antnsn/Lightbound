@@ -1,0 +1,17 @@
+# Dependabot: the addon itself has no packages (plain Lua), so this covers what builds the docs wiki.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: bundler
+    directory: /docs
+    schedule:
+      interval: monthly
+    groups:
+      docs-gems:
+        patterns: ["*"]

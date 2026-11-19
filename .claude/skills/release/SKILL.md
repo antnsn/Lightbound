@@ -35,7 +35,9 @@ For every changelog line, the docs say the same:
 - New `/lb` commands are on `docs/commands.md`.
 - A feature that guesses or can be wrong because Forever hides data in combat (the twist count,
   anything counted instead of read) says so on its page, in a `{: .note }` callout at the top.
-- `CURSEFORGE.md` (the CurseForge description) lists the new headline features.
+- `CURSEFORGE.md` (the CurseForge description, pasted by hand into the project page): the
+  "What's new in <version>" section is this version's changelog, short; new features are in
+  their section. After the release, remind the maintainer to paste it into CurseForge.
 - Build it: in `docs/`, `bundle exec jekyll build -d <scratchpad>/site`, no errors; check links
   to new pages and images.
 
