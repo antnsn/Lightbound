@@ -37,7 +37,9 @@ For every changelog line, the docs say the same:
   anything counted instead of read) says so on its page, in a `{: .note }` callout at the top.
 - `CURSEFORGE.md` (the CurseForge description, pasted by hand into the project page): the
   "What's new in <version>" section is this version's changelog, short; new features are in
-  their section. After the release, remind the maintainer to paste it into CurseForge.
+  their section. Then `python3 tools/sync_curseforge.py` copies the finished changelog to the
+  bottom (`--check` says whether it's current). After the release, remind the maintainer to
+  paste the whole file into CurseForge.
 - Build it: in `docs/`, `bundle exec jekyll build -d <scratchpad>/site`, no errors; check links
   to new pages and images.
 
