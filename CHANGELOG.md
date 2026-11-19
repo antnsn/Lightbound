@@ -6,6 +6,10 @@
 - An error in one part of Lightbound no longer stops the parts loaded after it (the twist bar,
   Carrot on a Stick and others could silently never start). The error is now printed in chat
   once, with the file and line.
+- Twist bar: shows in the first fight after a relog too. The client can't always look up the
+  Unsealed Wrath talent by name at login, and its Echo buff is only readable out of combat, so
+  the bar used to stay away until the second fight. Once seen, the talent is remembered per
+  character until a respec.
 
 ## 5.0
 

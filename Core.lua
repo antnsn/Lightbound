@@ -32,7 +32,7 @@ ns.defaults = {
 	rfPoint = { "CENTER", "UIParent", "CENTER", 0, 230 },
 	seal = true, sealEmptyInCombat = true, sealHeight = 220, sealWidth = 22,
 	twist = true, twistBuild = "Seal of Command", twistBurst = "Seal of Righteousness",
-	twistCDs = true, twistSound = false,
+	twistCDs = true, twistSound = false, twistKnown = {}, -- per character: Unsealed Wrath seen (Twist.lua)
 	twistPoint = { "CENTER", "UIParent", "CENTER", 0, -190 },
 	sealPoint = { "CENTER", "UIParent", "CENTER", -260, -60 },
 	sealDur = {},

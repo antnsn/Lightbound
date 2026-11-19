@@ -57,8 +57,22 @@ local function Known(spell)
 	return ok and Clean(info) ~= nil
 end
 
-local function CheckKnown()
-	known = Known(TALENT) or seenEcho
+-- The talent can't always be looked up by name right after login, and its Echo buff is only
+-- readable out of combat: without this the bar stayed away in the first fight after every relog.
+-- Once the talent or its Echo has been seen, the character is remembered until a respec.
+local function CharKey() return (UnitName("player") or "?") .. "-" .. (GetRealmName and GetRealmName() or "") end
+local function Remember(v) ns.db.twistKnown[CharKey()] = v end
+
+local byName = false -- the talent was found by name this session: then a failed lookup means a real loss
+
+-- respec: true when a talent event should drop the memory. PLAYER_TALENT_UPDATE and
+-- TRAIT_CONFIG_UPDATED also fire while talents load in at login, when the lookup can fail
+-- for the wrong reason, so the memory only goes when the lookup worked earlier this session.
+local function CheckKnown(respec)
+	local found = Known(TALENT)
+	if found then byName = true elseif respec and byName then Remember(nil); seenEcho = false end
+	known = found or seenEcho or ns.db.twistKnown[CharKey()] or false
+	if known then Remember(true) end
 	for _, b in ipairs(cdIcons or {}) do b.known = Known(b.spell.name) end
 end
 
@@ -72,7 +86,7 @@ local function ReadEchoes()
 		if not ok then return nil end
 		if type(a) == "table" then
 			by[seal] = { n = Clean(a.applications) or 1, expires = Clean(a.expirationTime) }
-			seenEcho = true; known = true
+			seenEcho = true; known = true; Remember(true)
 		end
 	end
 	return by
@@ -428,8 +442,8 @@ function M:Init()
 			return
 		elseif event == "SPELLS_CHANGED" or event == "PLAYER_ENTERING_WORLD" or event == "TRAIT_CONFIG_UPDATED"
 			or event == "PLAYER_TALENT_UPDATE" then
-			if event ~= "SPELLS_CHANGED" then seenEcho = false end -- a respec: ask again
-			CheckKnown()
+			if event ~= "SPELLS_CHANGED" then seenEcho = false end -- ask again
+			CheckKnown(event == "TRAIT_CONFIG_UPDATED" or event == "PLAYER_TALENT_UPDATE")
 		elseif event == "SPELL_UPDATE_COOLDOWN" then
 			RefreshCDs()
 			return

@@ -9,6 +9,9 @@ ignore = {
 	"432", -- shadowing self in nested methods
 }
 
+-- tests/test_session.lua is a stand-in WoW client: it defines the API globals the addon uses
+files["tests/test_session.lua"] = { global = false, max_line_length = false }
+
 globals = {
 	"LightboundDB",
 	"SLASH_LIGHTBOUND1",
