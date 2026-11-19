@@ -75,4 +75,50 @@ eq(L.Swing(d, 3.3, 14.2), "burst", "burst swing")
 L.Avoid(d, 14.2)
 eq(d.stacks, 3, "a dodged burst swing keeps the stacks"); eq(d.stackSeal, C, "still Command")
 
+-- the target's miss can come in before the swing event in the same frame
+local m = L.New(); L.Seal(m, C, 0)
+L.Swing(m, 3.3, 1)
+eq(L.Avoid(m, 4.3), false, "miss first: nothing to undo yet")
+eq(L.Swing(m, 3.3, 4.3), "avoided", "the swing it belonged to stores nothing")
+eq(m.stacks, 1, "still one")
+eq(L.Swing(m, 3.3, 7.6), "store", "a later swing is not affected"); eq(m.stacks, 2, "two")
+
+-- a swing that lands updates your Echo buff right after; no update means it didn't land
+local h = L.New(); L.Seal(h, C, 0)
+L.Swing(h, 3.3, 1); L.Hit(h, 1.1); L.Settle(h, 1.5)
+L.Swing(h, 3.3, 4.3); L.Hit(h, 4.4); L.Settle(h, 5)
+L.Swing(h, 3.3, 7.6); L.Hit(h, 7.7); L.Settle(h, 8)
+eq(h.stacks, 3, "three confirmed swings")
+L.Seal(h, R, 9)
+L.Swing(h, 3.3, 10.9); L.Settle(h, 11)
+eq(h.stacks, 1, "not settled before the confirm window ends")
+L.Settle(h, 10.9 + L.CONFIRM_WINDOW + 0.01)
+eq(h.stacks, 3, "no aura update after the burst swing: it didn't land, the three wait")
+eq(h.stackSeal, C, "still Command")
+L.Swing(h, 3.3, 14.2); L.Hit(h, 14.3); L.Settle(h, 15); eq(h.stackSeal, R, "this one landed")
+
+-- an unrelated buff change near a swing can't switch take-backs on by itself
+local q = L.New(); L.Seal(q, C, 0)
+L.Swing(q, 3.3, 1); L.Hit(q, 1.1)
+L.Swing(q, 3.3, 4.3); L.Settle(q, 5)
+eq(q.stacks, 2, "one stray update: still trusting every swing")
+
+-- three take-backs in a row: the updates stopped coming, trust every swing again
+local r = L.New(); L.Seal(r, C, 0)
+for i = 0, 2 do L.Swing(r, 3.3, i * 3.3); L.Hit(r, i * 3.3 + 0.1) end
+for i = 3, 5 do L.Swing(r, 3.3, i * 3.3); L.Settle(r, i * 3.3 + 1) end
+eq(r.confirming, false, "switched off")
+L.Swing(r, 3.3, 20); L.Settle(r, 21); eq(r.stacks, 3, "counted again")
+
+-- until one swing has been confirmed this way, unconfirmed swings are trusted (client may not tell)
+local u = L.New(); L.Seal(u, C, 0)
+L.Swing(u, 3.3, 1); L.Settle(u, 2); L.Swing(u, 3.3, 4.3); L.Settle(u, 5)
+eq(u.stacks, 2, "no confirmation seen yet: keep counting every swing")
+
+-- a sync from the real buffs drops a pending take-back (it must not undo the truth later)
+local z = L.New(); L.Seal(z, C, 0)
+L.Swing(z, 3.3, 1); L.Hit(z, 1.1)
+L.Swing(z, 3.3, 4.3); L.Sync(z, {}, 4.35); L.Settle(z, 5)
+eq(z.stacks, 0, "synced zero stays zero")
+
 print("all ok")

@@ -61,7 +61,7 @@ Page **Twist** in `/lb`.
 
 ## Good to know
 
-**The pips are the real count, TWIST is counted.** Forever hides the Echo buffs (the stored copies) from addons in combat. The pips are drawn by the game from the buff, so they're always right, but Lightbound itself can't read them. For `TWIST` Lightbound counts your swings and seal casts. A swing your **target** dodges, parries or that misses doesn't count. Lightbound only sees that on your target, in the same moment as your swing. So if you hit a mob you don't have targeted, every swing counts. And in a group, someone else's attack being dodged at exactly the moment of your swing can, rarely, take one away. Out of combat the count is checked against the real buffs.
+**The pips are the real count, TWIST is counted.** Forever hides the Echo buffs (the stored copies) from addons in combat. The pips are drawn by the game from the buff, so they're always right, but Lightbound itself can't read them. For `TWIST` Lightbound counts your swings and seal casts. A swing that misses, or is dodged or parried, doesn't count. Lightbound sees that two ways: a swing that lands updates your Echo buff right away, and one that doesn't, doesn't. Your target also shows the miss, dodge or parry. If the count still drifts, the pips show the real number. Out of combat the count is checked against the real buffs.
 
 **Move it** by unlocking frames (`/lb unlock`). It shows a sample while unlocked.
 

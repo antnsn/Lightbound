@@ -305,6 +305,7 @@ local function OnUpdate()
 		sealCheck = now + 0.5
 		if state.seal and ns.ActiveSeal and not ns.ActiveSeal() then L.Seal(state, nil) end
 	end
+	L.Settle(state, now) -- a swing with no buff update after it didn't land
 	Draw(now)
 end
 
@@ -394,8 +395,13 @@ function M:Init()
 	ev:RegisterUnitEvent("UNIT_AURA", "player")
 	ev:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 	ev:RegisterUnitEvent("UNIT_COMBAT", "target")
+	local auraAt -- last update of your buffs: a landed swing updates the Echo buff right away
 	ev:SetScript("OnEvent", function(_, event, a1, a2, a3)
 		local now = GetTime()
+		if event == "UNIT_AURA" then
+			auraAt = now
+			L.Hit(state, now)
+		end
 		if event == "UNIT_COMBAT" then -- unit, action, flags, amount: only the action is readable in combat
 			local action = Clean(a2)
 			if action and AVOIDED[action] then L.Avoid(state, now) end
@@ -404,6 +410,7 @@ function M:Init()
 			local dur, kind = Clean(a1), Clean(a2)
 			if kind ~= 0 or not dur or dur <= 0 then return end
 			if L.Swing(state, dur, now) == "burst" then flash.anim:Stop(); flash.anim:Play() end
+			if auraAt == now then L.Hit(state, now) end -- the buff update came first, same frame
 			return
 		elseif event == "UNIT_SPELLCAST_SUCCEEDED" then -- unit, castGUID, spellID
 			local name = ns.SpellName(a3)
