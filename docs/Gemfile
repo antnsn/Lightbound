@@ -1,8 +1,8 @@
 source "https://rubygems.org"
 
 # Same versions locally (bundle exec jekyll serve) and in the GitHub Pages workflow.
-gem "jekyll", "~> 4.3.4"
-gem "just-the-docs", "0.10.1"
+gem "jekyll", "~> 4.4.1"
+gem "just-the-docs", "0.12.0"
 
 # Ruby 3.4 moved these out of the default gems; Jekyll 4.3 still loads them
 gem "csv"
