@@ -82,3 +82,24 @@ bd close <id>         # Complete work
 - NEVER say "ready to push when you are" - YOU must push
 - If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
+
+## Git flow: main is protected
+
+`main` only takes changes through a pull request (GitHub ruleset "main": signed commits, no force
+push, no deletion, 0 approvals needed). The maintainer doesn't work on the code: Claude opens, and
+merges, its own pull requests. Wherever these instructions say `git push`, it means:
+
+```bash
+git switch main && git pull --rebase   # start from an up-to-date main
+git switch -c <topic>                  # one branch per piece of work
+git commit ...                         # the change and its .beads/issues.jsonl together
+git push -u origin <topic>
+gh pr create --fill                    # body ends with the Claude Code attribution line
+gh pr merge --squash --delete-branch   # after the checks above (Codex review, lint, tests) pass
+git switch main && git pull --rebase
+```
+
+- Squash merges are signed by GitHub, so they pass the signature rule.
+- The docs wiki builds when the merge lands on main.
+- Release tags are not covered by the ruleset: tag the merged commit on main, then push the tag.
+- There is no Dolt remote: skip `bd dolt push`.

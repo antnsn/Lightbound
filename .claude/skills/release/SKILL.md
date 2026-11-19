@@ -14,7 +14,7 @@ Steps marked **(in game)** are done by the maintainer: ask, then wait until they
 
 ## 1. Check the code
 - `git status`: only intended changes. Never commit the maintainer's own local edits they haven't asked for
-  (e.g. an uncommitted `Cleanse.lua`): pull and push with `git -c rebase.autoStash=true pull --rebase`.
+  (e.g. an uncommitted file): pull with `git -c rebase.autoStash=true pull --rebase`.
 - `for f in *.lua; do luac5.1 -p "$f" || echo "syntax error: $f"; done`
 - `~/.luarocks/bin/luacheck .`
 - `for t in tests/*.lua; do lua5.1 "$t" || echo "FAIL: $t"; done`
@@ -58,9 +58,13 @@ client start: restart the game, not just `/reload`.
    a skin's look changed.
 
 ## 5. Ship
-- Commit: `Lightbound <version>: <headline features>` (toc, changelog, docs, screenshots).
-- `git tag -a v<version>[-beta] -m "Lightbound <version>: <headline features>"`
-- `git push && git push origin v<version>[-beta]`
+main is protected: everything goes through a pull request (see "Git flow" in CLAUDE.md).
+- On a branch `release-<version>`, commit: `Lightbound <version>: <headline features>` (toc,
+  changelog, docs, screenshots).
+- `git push -u origin release-<version>`, `gh pr create --fill`, `gh pr merge --squash --delete-branch`.
+- `git switch main && git pull --rebase`, then tag the merged commit:
+  `git tag -a v<version>[-beta] -m "Lightbound <version>: <headline features>"` and
+  `git push origin v<version>[-beta]`.
 - `gh run list --limit 3`: the Docs workflow finished; open the changed wiki page.
 - Say that the CurseForge upload comes from the tag (it takes a few minutes), and whether
   players must update with the game closed.
