@@ -78,7 +78,13 @@ No build step: WoW loads the .lua files directly. Before committing, from this f
 ```bash
 for f in *.lua; do luac5.1 -p "$f" || echo "syntax error: $f"; done   # syntax (Lua 5.1, like the client)
 ~/.luarocks/bin/luacheck .                                            # lint, config in .luacheckrc
+for t in tests/*.lua; do lua5.1 "$t" || echo "FAIL: $t"; done         # pure logic + a replayed session in a WoW stub
 ```
+
+`tests/test_session.lua` is a stand-in client: it loads Core, Skin, SealTimer, Twist, WellRested
+and Carrot and replays login, a ride, a fight and a relog in several client moods. When a bug
+can't be found by reading, add the scenario there and run it (`VERBOSE=1` prints the session
+log) before asking for in-game probes.
 
 A new name in luacheck's "undefined variable" warnings is either a typo or WoW API not yet in
 `.luacheckrc`: check it exists on Forever (many legacy globals are gone there) before adding it.
