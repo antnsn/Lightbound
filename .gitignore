@@ -2,7 +2,8 @@ ligghtbound.png
 *.bak
 .DS_Store
 Thumbs.db
-.claude/
+.claude/*
+!.claude/skills/
 
 # Beads / Dolt files (added by bd init)
 .dolt/

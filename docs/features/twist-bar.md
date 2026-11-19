@@ -9,6 +9,9 @@ description: For Retribution with Unsealed Wrath. Shows the seal copies your swi
 
 For Retribution paladins with **Unsealed Wrath**. The bar shows how many seal copies your swings have stored, and lights up just before the swing where you should swap seals.
 
+{: .note }
+> The twist bar is a best effort. Forever doesn't let addons read the combat log or your buffs during combat, so Lightbound counts your swings to know when to say `TWIST`, and that count can sometimes be one off. The three pips are drawn by the game itself and are always right: when the two disagree, trust the pips. See [Good to know](#good-to-know).
+
 ## How Unsealed Wrath works
 
 Each melee swing stores a copy of your active seal for 15 seconds, up to 3. When a swing lands with a **different** seal, all stored copies are used, and each one gets that seal's normal chance to proc. The usual twist:
