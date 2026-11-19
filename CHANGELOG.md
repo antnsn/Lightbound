@@ -3,6 +3,9 @@
 ## Unreleased
 
 - The Twist page and the drinking setting say they are a best effort, with why.
+- An error in one part of Lightbound no longer stops the parts loaded after it (the twist bar,
+  Carrot on a Stick and others could silently never start). The error is now printed in chat
+  once, with the file and line.
 
 ## 5.0
 

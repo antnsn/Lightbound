@@ -583,7 +583,7 @@ loader:SetScript("OnEvent", function(self, _, name)
 	end
 	if ns.db.pbSource == "PallyPower" then ns.db.pbSource = "Group" end -- v2.4 setting
 	self:UnregisterEvent("ADDON_LOADED")
-	for _, m in ipairs(ns.modules) do m:Init() end
+	for _, m in ipairs(ns.modules) do ns.Guard(m, "Init") end
 end)
 
 -- Slash command ---------------------------------------------------------------
@@ -591,10 +591,25 @@ end)
 local function Print(msg) print("|cffffd100Lightbound:|r " .. msg) end
 local function OnOff(v) return v and "|cff00ff00on|r" or "|cffff0000off|r" end
 
+-- Runs one module's method so an error in it can't stop the modules after it: with the loops
+-- below unguarded, a module that failed to start left every later one without its events, and
+-- nothing said so. The error goes to the game's error handler (BugSack, scriptErrors) and the
+-- first one per module is printed in chat, with the file and line, so it isn't missed.
+function ns.Guard(m, what, ...)
+	local ok, err = pcall(m[what], m, ...)
+	if ok then return true end
+	if not m.failed then
+		m.failed = true
+		Print("a part of the addon hit an error, the rest keeps working: " .. tostring(err))
+	end
+	pcall(geterrorhandler(), err)
+	return false
+end
+
 local function Refresh()
 	for _, m in ipairs(ns.modules) do
-		if m.Layout then m:Layout() end
-		m:Update()
+		if m.Layout then ns.Guard(m, "Layout") end
+		ns.Guard(m, "Update")
 	end
 end
 ns.Refresh = Refresh
