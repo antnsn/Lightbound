@@ -10,6 +10,8 @@
   Unsealed Wrath talent by name at login, and its Echo buff is only readable out of combat, so
   the bar used to stay away until the second fight. Once seen, the talent is remembered per
   character until a respec.
+- Twist bar: the Judgement and Holy Strike icons no longer stay question marks when the client
+  had no picture for them at login; they are fetched again until they have one.
 
 ## 5.0
 

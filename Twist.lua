@@ -47,9 +47,18 @@ local seenEcho = false
 local function IsSeal(name) return name and name:find("^Seal of") ~= nil end
 local function Short(name) return name and (name:gsub("^Seal of t?h?e? ?", "")) or "" end
 
+local QUESTION = 134400 -- the icon when the client has no texture for the spell (yet)
+
 local function Texture(spell)
 	local ok, tex = pcall(C_Spell.GetSpellTexture, spell)
-	return (ok and Clean(tex)) or 134400
+	return (ok and Clean(tex)) or QUESTION
+end
+
+-- Right after login the client can have no texture for a spell yet: keep asking until it has one.
+local function SetIconTexture(b)
+	local tex = Texture(b.spell.name)
+	b.tex:SetTexture(tex)
+	b.hasIcon = tex ~= QUESTION
 end
 
 local function Known(spell)
@@ -73,7 +82,10 @@ local function CheckKnown(respec)
 	if found then byName = true elseif respec and byName then Remember(nil); seenEcho = false end
 	known = found or seenEcho or ns.db.twistKnown[CharKey()] or false
 	if known then Remember(true) end
-	for _, b in ipairs(cdIcons or {}) do b.known = Known(b.spell.name) end
+	for _, b in ipairs(cdIcons or {}) do
+		b.known = Known(b.spell.name)
+		if not b.hasIcon then SetIconTexture(b) end
+	end
 end
 
 
@@ -107,11 +119,11 @@ local function MakeIcon(spell)
 	b:SetSize(ICON, ICON)
 	b.tex = b:CreateTexture(nil, "ARTWORK")
 	b.tex:SetAllPoints(); b.tex:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-	b.tex:SetTexture(Texture(spell.name))
+	b.spell = spell
+	SetIconTexture(b)
 	ns.UI.IconBorder(b)
 	b.cd = CreateFrame("Cooldown", nil, b, "CooldownFrameTemplate")
 	b.cd:SetAllPoints(); b.cd:SetDrawEdge(false)
-	b.spell = spell
 	b.readyAt = 0
 	return b
 end
@@ -150,6 +162,7 @@ local function UpdateIcons()
 		local show = ns.db.twistCDs and (ns.unlocked or b.known)
 		b:SetShown(show and true or false)
 		if show then
+			if not b.hasIcon then SetIconTexture(b) end
 			b:ClearAllPoints(); b:SetPoint("LEFT", f, "LEFT", x, 0)
 			x = x + ICON + GAP
 			local ready = ns.unlocked or GetTime() >= b.readyAt

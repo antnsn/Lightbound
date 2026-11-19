@@ -77,6 +77,7 @@ local function Session(scenario)
 	function Frame:SetValue(v) self.__value = v end
 	function Frame:GetValue() return self.__value end
 	function Frame:SetText(t) self.__text = t end
+	function Frame:SetTexture(t) self.__texture = t end
 	function Frame:GetText() return self.__text end
 	function Frame:GetStringWidth() return 50 end
 	function Frame:GetStatusBarTexture() return newObj("Texture", nil, self) end
@@ -168,7 +169,7 @@ local function Session(scenario)
 			return { name = n, spellID = 1 }
 		end,
 		GetSpellName = function(id) return SPELLS[id] or ("Spell" .. tostring(id)) end,
-		GetSpellTexture = function() return 135924 end,
+		GetSpellTexture = function() if state.noSpellData then return nil end return 135924 end,
 		GetSpellCooldown = function() return { startTime = 0, duration = 0 } end,
 	}
 	G.C_Item = {
@@ -241,7 +242,7 @@ local function Session(scenario)
 	-- The session ----------------------------------------------------------------------------
 	G.LightboundDB = { skin = "lightbound", wellRestedKeep = true, wellFedKeep = true, carrotSwap = true, carrotSlot = "Top", twist = true }
 	if scenario == "off" then G.LightboundDB.wellRested = false; G.LightboundDB.wellFed = false end
-	if scenario == "notalent" then state.known["Unsealed Wrath"] = false end -- the talent can't be looked up by name
+	if scenario == "notalent" then state.known["Unsealed Wrath"] = false; state.noSpellData = true end -- spell data not in yet: no talent by name, no textures
 	if scenario == "secret" then state.secret = true end -- Forever: aura API throws and combat state is secret in combat
 	local base = {}
 	if scenario == "buffed" then base = { Aura("Well-Rested", 429959, 7200), Aura("Well Fed", 433, 1800) } end
@@ -282,6 +283,14 @@ local function Session(scenario)
 	SetAuras(With(base, seal, Aura("Echo of Command", 1311703, 15, 3))) -- the stored copies, readable again
 	Advance(2)
 	result.twistHiddenAfter = not Shown("LightboundTwistFrame")
+
+	-- the client has its spell data now (SPELLS_CHANGED): the cooldown icons get their pictures
+	state.noSpellData = false
+	Fire("SPELLS_CHANGED")
+	result.cdIcons = true
+	for _, f in ipairs(frames) do
+		if f.spell and f.tex and f.tex.__texture ~= 135924 then result.cdIcons = false end
+	end
 
 	-- a relog: the client forgets what the addon learned, LightboundDB stays. The talent events
 	-- fire while talents load in too, before the lookup can work.
@@ -354,6 +363,7 @@ for _, scenario in ipairs({ "missing", "off", "buffed", "notalent", "secret" }) 
 	-- after a respec the bar goes; when the lookup never worked the memory stays (can't tell a respec from login)
 	Expect(scenario, result, "twistAfterRespec", scenario == "notalent")
 	Expect(scenario, result, "twistBackToRet", true) -- the loadout with the talent again
+	Expect(scenario, result, "cdIcons", true) -- no question marks once the client has spell data
 end
 
 if failed > 0 then io.write(failed, " check(s) failed\n") os.exit(1) end
