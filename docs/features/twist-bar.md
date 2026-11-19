@@ -54,6 +54,8 @@ Press it when `TWIST` shows. It casts the next seal in the sequence, starting ov
 
 Page **Twist** in `/lb`.
 
+![Twist options page]({{ '/screenshots/options-twist.png' | relative_url }})
+
 | Setting | Default | What it does |
 | --- | --- | --- |
 | Show the twist bar | On | |

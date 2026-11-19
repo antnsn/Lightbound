@@ -6,12 +6,15 @@ Lightbound buffs your party and raid with a single key, sorts out who blesses wh
 
 **Full guide with screenshots: https://antnsn.github.io/Lightbound/**
 
-## What's new in 4.6
+## What's new in 5.0
+The first release out of beta.
+
 - **Twist bar** for Retribution with Unsealed Wrath: three pips with your real Echo stacks (drawn by the game, in combat too), a swing bar, and a pulsing TWIST when it's time to swap seals, and again when it's time to swap back. Judgement and Holy Strike icons alongside.
 - **Blessings window: Players tab.** One line per player: give one player their own blessing, and mark tanks right there.
 - **Carrot on a Stick** goes on when you mount and your trinket comes back when you get off (off by default).
 - **"Drinking"** in party chat when you sit down to drink, by default only in dungeons and raids (off by default).
 - The seal timer no longer restarts on a Seal of Command proc.
+- Update with the game closed: this version loads new files.
 
 Every version's changes are in the changelog at the bottom of this page.
 
@@ -79,6 +82,18 @@ Source and issues: https://github.com/antnsn/Lightbound
 
 ## Changelog
 <!-- changelog:start -->
+### 5.0
+
+The first release out of beta.
+
+- Twist bar (new page Twist): for Retribution with Unsealed Wrath. Three pips that show your real Echo stacks (drawn by the game, in combat too), a swing bar, and a pulsing TWIST above it as soon as three copies are stored, and again when it is time to go back. Judgement and Holy Strike icons alongside. A swing your target dodges, parries or that misses isn't counted.
+- Seal timer: a Seal of Command proc no longer restarts the 30 second timer.
+- Announce: "Say when you drink" posts "Drinking" in party chat when you start drinking in a group, by default only in dungeons and raids. Off by default, under Announce.
+- Blessings window: a new **Players** tab with one line per player. Set a blessing for one player only (grey follows the class, gold is that player's own), and mark tanks right there. A player with their own blessing no longer counts as missing the class blessing.
+- Carrot on a Stick (page Extras, off by default): worn while you're mounted, in the trinket slot you pick, and your own trinket goes back on when you get off. Not in instances; waits until combat is over.
+- Cleanse page: "Show when solo" and "Names in grid cells" share a row, so the ignore list at the bottom fits.
+- Lightbound.toc loads new files, so update with the game closed.
+
 ### 4.5
 
 - Skins: pick how Lightbound looks on the new Skin page in `/lb`. Lightbound (the gold look, default), Blizzard (the game's own grey and silver frames) or Flat (thin black edges on dark grey, to sit next to EllesmereUI or ElvUI). A new skin applies after a reload. Colours that mean something (missing, debuff types, class colours) stay the same in every skin.

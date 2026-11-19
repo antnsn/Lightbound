@@ -46,6 +46,8 @@ Know which paladin still has Blessing of Protection or Divine Shield, put Divine
 
 In `/lb`, page **Cooldowns**:
 
+![Cooldowns options page]({{ '/screenshots/options-cooldowns.png' | relative_url }})
+
 | Setting | Default | What it does |
 | --- | --- | --- |
 | Show the cooldowns frame | On | The frame itself. |
@@ -53,6 +55,8 @@ In `/lb`, page **Cooldowns**:
 | Include my own row | On | Your row, including Forbearance. |
 
 In `/lb`, page **Announce**:
+
+![Announce options page]({{ '/screenshots/options-announce.png' | relative_url }})
 
 **Divine Intervention**
 

@@ -34,6 +34,8 @@ This is separate from the single **Judgement icon** on the Combat page, which sh
 
 In `/lb`, page **Judgements**:
 
+![Judgements options page]({{ '/screenshots/options-judgements.png' | relative_url }})
+
 | Setting | Default | What it does |
 | --- | --- | --- |
 | Track the raid's Judgements on my target | On | The row of icons in combat. |
