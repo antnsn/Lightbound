@@ -1,5 +1,9 @@
 # Lightbound changelog
 
+## Unreleased
+
+- The Twist page and the drinking setting say they are a best effort, with why.
+
 ## 5.0
 
 The first release out of beta.

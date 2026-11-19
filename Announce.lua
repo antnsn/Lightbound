@@ -349,7 +349,7 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 		"\"Resurrecting <name>\" in party or raid chat when you start casting Redemption.")) + 6)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "rezWhisper", "Also whisper the target")) + 6)
 	p:Add(UI.Section(p, p.y, "Drinking") + 6)
-	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "drinkAnnounce", "Say when you drink",
-		"\"Drinking\" in party chat when you sit down to drink in a group.")) + 6)
+	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "drinkAnnounce", "Say when you drink *",
+		"\"Drinking\" in party chat in a group. * Best effort: found by the drink buff's name.")) + 6)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, W, "drinkInstanceOnly", "Only in dungeons and raids")) + 6)
 end

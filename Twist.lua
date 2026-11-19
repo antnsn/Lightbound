@@ -449,7 +449,7 @@ end
 ns.optionPages[#ns.optionPages + 1] = function(UI)
 	local p = UI.NewPage("Twist", "Unsealed Wrath: stored seal copies and when to swap, on a swing bar. Shown in combat when you have the talent.")
 	local CW = UI.CONTENT_W
-	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twist", "Show the twist bar",
+	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twist", "Show the twist bar *",
 		"Three pips for the copies your swings store, and TWIST above the bar each time you change seals.")) + 14)
 	p:Add(select(2, UI.Cycle(p, p.y, "Build with", SEALS,
 		function() return ns.db.twistBuild end, function(v) ns.db.twistBuild = v end)) + 4)
@@ -459,5 +459,7 @@ ns.optionPages[#ns.optionPages + 1] = function(UI)
 	p:Add(select(2, UI.DBToggle(p, 0, p.y, CW, "twistSound", "Sound when it's time to twist")) + 6)
 	local n = UI.Font(p, 12, UI.C.dim)
 	n:SetPoint("TOPLEFT", 0, p.y - 4); n:SetPoint("RIGHT", p, "RIGHT")
-	n:SetText("The pips are drawn by the game from your Echo buff. The swap advice is counted from your swings, leaving out a miss, dodge or parry on your target.")
+	n:SetText("* Best effort. Forever hides the combat log and your buffs from addons in combat, so TWIST is "
+		.. "counted from your swings (leaving out a miss, dodge or parry on your target) and can be one off. "
+		.. "The pips are drawn by the game from your Echo buff and are always right: trust them.")
 end
