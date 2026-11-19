@@ -66,6 +66,8 @@ In `/lb`, page **Raid overview**:
 
 In `/lb`, page **Requests**:
 
+![Requests options page]({{ '/screenshots/options-requests.png' | relative_url }})
+
 | Setting | Default | What it does |
 | --- | --- | --- |
 | Show blessing requests | On | Turns requests on or off. |

@@ -29,6 +29,7 @@ Small reminders for everything a paladin forgets mid-dungeon: a missing Righteou
 
 - A vertical bar that empties while your seal runs out, coloured by the seal, with the seal's icon on top and the seconds below. The seconds turn red in the last 5.
 - In combat with no seal up, an empty bar says **NO SEAL**.
+- Only a seal you cast starts the timer again. A Seal of Command proc doesn't.
 
 ### My buffs
 
