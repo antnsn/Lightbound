@@ -6,6 +6,9 @@
 ## IconTexture: Interface\AddOns\Lightbound\Media\Icon64
 ## SavedVariables: LightboundDB
 
+Libs\LibStub\LibStub.lua
+Libs\LibBound\LibBound.xml
+
 Core.lua
 Skin.lua
 Group.lua
@@ -13,7 +16,6 @@ RighteousFury.lua
 SealTimer.lua
 TwistLogic.lua
 Twist.lua
-WellRested.lua
 Carrot.lua
 Auras.lua
 Blessings.lua
@@ -30,4 +32,3 @@ Announce.lua
 Tanks.lua
 Options.lua
 RaidWindow.lua
-Minimap.lua
