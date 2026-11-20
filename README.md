@@ -88,4 +88,5 @@ The buff key is set under **Buff key** in `/lb`.
 
 ## License
 
-MIT, see [LICENSE](LICENSE).
+GPL-3.0-or-later: GNU General Public License, version 3 or (at your option) any later
+version; see [LICENSE](LICENSE). LibBound-1.0 (in `Libs/LibBound`) is MIT, see its own LICENSE.
