@@ -39,7 +39,8 @@ For every changelog line, the docs say the same:
   "What's new in <version>" section is this version's changelog, short; new features are in
   their section. Then `python3 tools/sync_curseforge.py` copies the finished changelog to the
   bottom (`--check` says whether it's current). After the release, remind the maintainer to
-  paste the whole file into CurseForge.
+  paste the whole file into CurseForge, and the comment at its top into the "Summary" field if
+  it changed (at most 256 characters; the tool checks it, `--summary` prints it).
 - Build it: in `docs/`, `bundle exec jekyll build -d <scratchpad>/site`, no errors; check links
   to new pages and images.
 

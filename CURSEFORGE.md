@@ -1,3 +1,7 @@
+<!-- summary (CurseForge "Summary" field, at most 256 characters):
+All-in-one paladin addon for WoW: Forever: party and raid buffs on one key, blessing assignments shared with the other paladins, and reminders for everything a paladin forgets. Replaces PallyPower and stays compatible with it.
+-->
+
 # Lightbound
 
 **The all-in-one paladin addon for World of Warcraft: Forever.**
