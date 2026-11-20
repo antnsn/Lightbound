@@ -1,6 +1,6 @@
 # Lightbound changelog
 
-## Unreleased
+## 5.0.1
 
 - The Twist page and the drinking setting say they are a best effort, with why.
 - An error in one part of Lightbound no longer stops the parts loaded after it (the twist bar,
