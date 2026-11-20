@@ -1,8 +1,10 @@
--- Skins: every colour, font, border and texture the frames use comes from the active skin here,
--- through ns.UI. Values are looked up when a frame is built, so a skin change needs a /reload.
+-- Lightbound's skins on LibBound: the gold class skin and Lightbound's own Blizzard and Flat
+-- versions (kept as they were, so nothing changes for people using them). LibBound turns them
+-- into ns.UI, the cards and the option widgets.
 local _, ns = ...
+if not ns.isPaladin then return end
+local Bound = LibStub("LibBound-1.0")
 
-local MEDIA = "Interface\\AddOns\\Lightbound\\Media\\"
 local FRIZ, ARIALN, MORPHEUS = "Fonts\\FRIZQT__.TTF", "Fonts\\ARIALN.TTF", "Fonts\\MORPHEUS.TTF"
 
 local SKINS = {}
@@ -86,25 +88,13 @@ SKINS.lightbound = {
 		status = { 0.92, 0.88, 0.78 },
 		urgent = { 1, 0.55, 0.42 },
 		glowEdge = { 1, 0.84, 0.38, 1 }, -- edge colour while glowing, for skins without the sunburst
-		sunburst = true, studs = true, ring = true, round = true, -- the medallion's ornaments
+		burst = "Sunburst", studs = "Stud", ring = "Ring", round = true, -- the medallion's ornaments
 	},
 	-- "blizzard": the game's own buttons, check boxes and sliders; "flat": plain 1px boxes
 	widgets = "blizzard",
 }
 
--- a skin is the Lightbound skin with some values replaced (tables merge, so no token is missing)
-local function Derive(base, over)
-	local t = {}
-	for k, v in pairs(base) do t[k] = v end
-	for k, v in pairs(over) do
-		if type(v) == "table" and type(base[k]) == "table" and v[1] == nil and next(v) ~= nil then
-			t[k] = Derive(base[k], v)
-		else
-			t[k] = v
-		end
-	end
-	return t
-end
+local Derive = Bound.DeriveSkin
 
 -- Classic Blizzard: tooltip and dialog frames in the game's own grey and silver, white text.
 SKINS.blizzard = Derive(SKINS.lightbound, {
@@ -147,6 +137,7 @@ SKINS.blizzard = Derive(SKINS.lightbound, {
 		urgent = { 1, 0.35, 0.3 },
 		glowEdge = { 1, 0.82, 0, 1 },
 		studs = false,
+		raysFaded = { 0.75, 0.71, 0.63 },
 	},
 })
 
@@ -201,172 +192,19 @@ SKINS.flat = Derive(SKINS.lightbound, {
 		status = { 0.86, 0.86, 0.86 },
 		urgent = { 1, 0.4, 0.35 },
 		glowEdge = { 0.96, 0.78, 0.36, 1 },
-		sunburst = false, studs = false, ring = false, round = false,
+		burst = false, studs = false, ring = false, round = false,
 	},
 	widgets = "flat",
 })
 
--- picker order
-local ORDER = { "lightbound", "blizzard", "flat" }
-
--- the skin is fixed for the session once the saved settings are in: picking another one in the
--- options takes effect at the next reload, so frames built later never mix two skins
-local DEFAULT = "lightbound"
-local current
-local function Active()
-	if current then return current end
-	if not ns.db then return SKINS[DEFAULT] end
-	current = SKINS[ns.db.skin] or SKINS[DEFAULT]
-	return current
-end
-
--- read-through views of the active skin: UI.C.accent, UI.F.narrow, UI.CARD.gilt ...
-local function View(section)
-	return setmetatable({}, { __index = function(_, k) return Active()[section][k] end })
-end
-local C, F = View("color"), View("font")
-
-local function Tex(parent, layer, color)
-	local t = parent:CreateTexture(nil, layer)
-	t:SetColorTexture(color[1], color[2], color[3], color[4] or 1)
-	return t
-end
-
-local function Border(frame, color)
-	color = color or C.border
-	local function edge(p1, p2, w, h)
-		local t = Tex(frame, "BORDER", color)
-		t:SetPoint(p1); t:SetPoint(p2)
-		if w then t:SetWidth(w) end
-		if h then t:SetHeight(h) end
-	end
-	edge("TOPLEFT", "TOPRIGHT", nil, 1)
-	edge("BOTTOMLEFT", "BOTTOMRIGHT", nil, 1)
-	edge("TOPLEFT", "BOTTOMLEFT", 1, nil)
-	edge("TOPRIGHT", "BOTTOMRIGHT", 1, nil)
-end
-
--- SetFont with a skin font role ("ui", "title", "narrow", "card"); returns what SetFont returned
-local function SetFont(fs, role, size, flags)
-	return fs:SetFont(F[role], size, flags or "")
-end
-
-local function Font(parent, size, color, layer)
-	local fs = parent:CreateFontString(nil, layer or "OVERLAY")
-	SetFont(fs, "ui", size - 1)
-	fs:SetTextColor(color[1], color[2], color[3])
-	fs:SetJustifyH("LEFT")
-	return fs
-end
-
-local function Hex(c) return ("|cff%02x%02x%02x"):format(c[1] * 255, c[2] * 255, c[3] * 255) end
-local function Title(parent, size, color)
-	local fs = Font(parent, size, color or C.accent)
-	SetFont(fs, "title", size)
-	fs:SetShadowOffset(1, -1); fs:SetShadowColor(0, 0, 0, 1)
-	return fs
-end
-
-local function IsFlat() return Active().widgets == "flat" end
-
--- Dialog frame drawn just outside `frame`, plus the title plate (if the skin has one) and a close button.
-local function Skin(frame, titleText, onClose)
-	local d = Active().dialog
-	local skin = CreateFrame("Frame", nil, frame, "BackdropTemplate")
-	skin:SetPoint("TOPLEFT", -d.outset, d.outset); skin:SetPoint("BOTTOMRIGHT", d.outset, -d.outset)
-	skin:SetFrameLevel(math.max(frame:GetFrameLevel() - 1, 0))
-	skin:SetBackdrop(d.backdrop)
-	skin:SetBackdropColor(unpack(d.bg or { 1, 1, 1, 1 }))
-	if d.border then skin:SetBackdropBorderColor(unpack(d.border)) end
-	local ins = d.backdrop.insets
-	local under = skin:CreateTexture(nil, "BACKGROUND", nil, -8)
-	under:SetPoint("TOPLEFT", ins.left, -ins.top); under:SetPoint("BOTTOMRIGHT", -ins.right, ins.bottom)
-	under:SetColorTexture(unpack(d.under))
-	local top = CreateFrame("Frame", nil, frame)
-	top:SetAllPoints(skin)
-	top:SetFrameLevel(frame:GetFrameLevel() + 15)
-	if d.plate then
-		local plate = top:CreateTexture(nil, "OVERLAY")
-		plate:SetTexture(d.plate)
-		plate:SetSize(320, 64)
-		plate:SetPoint("TOP", 0, 12)
-		local t = top:CreateFontString(nil, "OVERLAY")
-		SetFont(t, "title", 14)
-		t:SetTextColor(unpack(C.accent))
-		t:SetPoint("TOP", plate, "TOP", 0, -14)
-		t:SetText(titleText)
-		skin.title = t
-	end
-	local close
-	if IsFlat() then
-		close = CreateFrame("Button", nil, frame)
-		close:SetSize(20, 20)
-		close:SetPoint("TOPRIGHT", -6, -6)
-		local x = close:CreateFontString(nil, "OVERLAY")
-		SetFont(x, "narrow", 16)
-		x:SetPoint("CENTER", 0, 1); x:SetText("x"); x:SetTextColor(unpack(C.dim))
-		close:SetScript("OnEnter", function() x:SetTextColor(1, 1, 1) end)
-		close:SetScript("OnLeave", function() x:SetTextColor(unpack(C.dim)) end)
-	else
-		close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-		close:SetPoint("TOPRIGHT", 6, 6)
-	end
-	close:SetFrameLevel(frame:GetFrameLevel() + 20)
-	close:SetScript("OnClick", onClose or function() frame:Hide() end)
-	return skin
-end
-
--- the emblem, faint, behind the content
-local function Watermark(parent, size, alpha)
-	local w = parent:CreateTexture(nil, "BORDER")
-	w:SetTexture(MEDIA .. "Logo256")
-	w:SetSize(size, size)
-	w:SetAlpha(alpha)
-	return w
-end
-
--- box for small frames (popups, the raid overview); needs a frame made with "BackdropTemplate"
-local function Box(frame, alpha)
-	if not frame.SetBackdrop then return end
-	local b = Active().box
-	frame:SetBackdrop(b.backdrop)
-	frame:SetBackdropColor(b.bg[1], b.bg[2], b.bg[3], alpha or 0.92)
-	frame:SetBackdropBorderColor(unpack(b.border))
-end
-
--- small frame title (top left, accent colour)
-local function FrameTitle(frame)
-	local t = frame:CreateFontString(nil, "OVERLAY")
-	SetFont(t, "title", 11)
-	t:SetTextColor(unpack(C.accent))
-	return t
-end
-
--- row background in the skin's row colour, and the mouse-over highlight
-local function RowBg(row)
-	row.bg = Tex(row, "BACKGROUND", C.row); row.bg:SetAllPoints()
-	return row.bg
-end
-local function Highlight(frame, alpha)
-	local h = C.highlight
-	local t = frame:CreateTexture(nil, "HIGHLIGHT"); t:SetAllPoints()
-	t:SetColorTexture(h[1], h[2], h[3], alpha or h[4])
-	return t
-end
-
--- Flat skin only: a 1px black edge around an icon (other skins leave icons bare)
-local function IconBorder(frame)
-	if not IsFlat() then return end
-	local b = CreateFrame("Frame", nil, frame)
-	b:SetPoint("TOPLEFT", -1, 1); b:SetPoint("BOTTOMRIGHT", 1, -1)
-	b:SetFrameLevel(math.max(frame:GetFrameLevel() - 1, 0))
-	Tex(b, "BACKGROUND", { 0, 0, 0, 1 }):SetAllPoints()
-	return b
-end
-
-ns.UI = {
-	C = C, F = F, CARD = View("card"), TEX = View("tex"), MEDIA = MEDIA,
-	Active = Active, Skins = SKINS, SkinOrder = ORDER, IsFlat = IsFlat, IconBorder = IconBorder,
-	Tex = Tex, Border = Border, SetFont = SetFont, Font = Font, Title = Title, Hex = Hex,
-	Skin = Skin, Watermark = Watermark, Box = Box, FrameTitle = FrameTitle, RowBg = RowBg, Highlight = Highlight,
-}
+Bound.InstallSkin(ns, {
+	skins = SKINS,
+	order = { "lightbound", "blizzard", "flat" },
+	default = "lightbound",
+	about = { lightbound = "Warm gold frames, the emblem cards with their slow light." },
+})
+Bound.InstallBuffTimers(ns)
+Bound.InstallMinimap(ns, {
+	rightClick = function() if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end end,
+	rightClickText = "Right-click: blessings",
+})
