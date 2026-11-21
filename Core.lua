@@ -87,6 +87,7 @@ ns.isPaladin = not Bound:NewAddon(addonName, ns, {
 	title = "Lightbound",
 	prefix = "ffd100",
 	db = "LightboundDB",
+	buffKey = false, -- Lightbound has its own buff key (PartyBuff.lua: blessings, Greater Blessings)
 	defaults = DEFAULTS,
 	migrate = Migrate,
 	slash = { "/lb", "/lightbound", "/rfr" },

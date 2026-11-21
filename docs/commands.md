@@ -41,6 +41,8 @@ Everything in Lightbound can be set in the options window (`/lb`). These chat co
 | `/lb grid` | Turns snapping to the grid on or off. `/lb snap` works too. |
 | `/lb grid 30` | Sets the grid size (4 to 100) and turns snapping on. |
 | `/lb minimap` | Shows or hides the minimap button. |
+| `/lb unlock`, `/lb lock` | Unlock the frames, or lock them again. |
+| `/lb explain` | Turns the explanations in tooltips on or off. |
 
 ## Warnings
 
@@ -59,3 +61,7 @@ Everything in Lightbound can be set in the options window (`/lb`). These chat co
 Type anything else after `/lb` (for example `/lb help`) to get a short list of commands in chat, with which switches are on or off.
 
 The [buff key](features/buff-key.html) and the [cleanse key](features/cleanse.html) are not commands: set them on the **Buff key** and **Cleanse** pages of `/lb`.
+
+## Without a space
+
+Every `/lb` command also works as one word: `/lbrested`, `/lbmove`, `/lbgrid 30`, `/lbminimap` and so on.

@@ -28,3 +28,6 @@ wb.closeGameMenu()
 wb.slash("/lb unlock")
 wb.check(wb.shown("LightboundWellRestedFrame"), "unlocked: the Well-Rested card shows to be placed")
 wb.slash("/lb lock")
+-- Lightbound keeps its own buff key (blessings, Greater Blessings): no shared LibBound one beside it
+wb.expect("no LibBound buff key button", wb.frame("LightboundBuffKey"), nil)
+wb.expect("and no shared buff key setting", wb.ns.BindBuffKey, nil)
