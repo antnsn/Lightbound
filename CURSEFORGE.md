@@ -8,7 +8,7 @@ All-in-one paladin addon for WoW: Forever: party and raid buffs on one key, bles
 
 Lightbound buffs your party and raid with a single key, sorts out who blesses which class with the other paladins, and reminds you about everything a paladin forgets. It replaces PallyPower and stays compatible with it: paladins who still run PallyPower see you, can assign you, and get your assignments.
 
-**Full guide with screenshots: https://antnsn.github.io/Lightbound/**
+**Full guide with screenshots:** https://antnsn.github.io/Lightbound/
 
 ## What's new in 5.0.1
 Bug fixes.
