@@ -93,6 +93,7 @@ Log in once with PallyPower still enabled. Lightbound copies your assignments an
 ## Ideas and contributions
 - **Missing something?** New features are added on request: leave a comment here.
 - **Feel free to contribute**: the code is on GitHub, https://github.com/antnsn/Lightbound (issues and pull requests welcome).
+- **Want a Bound addon for another class?** The shared core, LibBound, has a guide and API reference: https://antnsn.github.io/LibBound/
 
 ## Changelog
 <!-- changelog:start -->

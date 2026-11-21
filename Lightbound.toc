@@ -4,6 +4,7 @@
 ## X-License: GPL-3.0-or-later
 ## Author: Rheolux
 ## Version: 5.0.1
+## X-Curse-Project-ID: 1794686
 ## IconTexture: Interface\AddOns\Lightbound\Media\Icon64
 ## SavedVariables: LightboundDB
 
