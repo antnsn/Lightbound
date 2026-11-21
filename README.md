@@ -53,6 +53,8 @@ More in [docs/screenshots/](docs/screenshots).
 - Paladin cooldowns: every paladin's Blessing of Protection, Freedom and Sacrifice, Divine Shield and Divine Protection (plus your own Forbearance), shared between Lightbound users
 
 **Quality of life**
+- Travel panel: press Escape, and your Hearthstone (with its inn) sits beside the game menu
+- Explanations in the tooltips, which you can turn off (`/lb explain`)
 - Buys Symbol of Kings and Symbol of Divinity automatically at vendors (keeping a little gold and checking bag space), and warns when you run low
 - Blessing requests: when a group member whispers a short request like "kings pls", "bom" or "buff?", a row with their name appears; click it to bless them. Rows vanish once they're blessed or after a minute
 - **Divine Intervention picker.** In raids, a short list of healers; click one to cast Divine Intervention on them, in combat too. Shift-click pins a preferred target. The cast is announced in raid chat (raid warning for leaders and assists).

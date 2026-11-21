@@ -2,6 +2,11 @@
 # Push a tag to release: "v3.9" = release, "v3.9-beta" = beta, "v3.9-alpha" = alpha.
 package-as: Lightbound
 
+# LibBound-1.0, the shared core of the Bound addons, is fetched into Libs/LibBound
+externals:
+  Libs/LibBound:
+    url: https://github.com/antnsn/LibBound
+
 # CurseForge shows this file as the changelog of each release (newest version on top)
 manual-changelog:
   filename: CHANGELOG.md
@@ -21,3 +26,5 @@ ignore:
   - .luacheckrc
   - design
   - tests
+  - tools/sync-libbound.sh
+  - wowbench.toml

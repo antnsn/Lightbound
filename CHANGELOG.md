@@ -1,5 +1,13 @@
 # Lightbound changelog
 
+## Unreleased
+
+- **Built on LibBound**, the shared core of the Bound addons (Chronobound, Stormbound, Packbound, Spiritbound, Felbound, Dreambound). Your settings, pages, skins, buff key and commands stay the same.
+- **Travel panel**: press Escape, and your Hearthstone, with the inn it's set to, sits beside the game menu. Click it to use it.
+- **Explanations in tooltips** can be turned off: Skin page, or `/lb explain`.
+- **Commands without a space**: `/lbrested`, `/lbmove`, `/lbgrid` and so on work next to `/lb rested`.
+- **Minimap button** through LibDBIcon, so minimap addons (EllesmereUI, SexyMap, ElvUI, MinimapButtonBag) can collect it. Its place is kept.
+
 ## 5.0.1
 
 - The Twist page and the drinking setting say they are a best effort, with why.

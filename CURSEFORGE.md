@@ -75,6 +75,8 @@ Best effort: Forever doesn't let addons read the combat log or your buffs in com
 - Click the Righteous Fury, aura or blessing icons to cast that spell (out of combat)
 - Classic WoW-style options window (`/lb`), minimap button and addon compartment entry; shift-click the minimap button to unlock the frames
 - Every frame can be moved, snapped to a grid, and resized with the mouse wheel while unlocked
+- **Travel panel**: press Escape, and your Hearthstone (with its inn) sits beside the game menu
+- Plain explanations in the tooltips, which you can turn off (`/lb explain`)
 
 ## Commands
 - `/lb` options
