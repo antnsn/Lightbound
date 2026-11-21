@@ -1,0 +1,6 @@
+[check]
+skip = ["Libs/**"]
+
+[[pack.embed]]
+from = "../LibBound"
+to = "Libs/LibBound"

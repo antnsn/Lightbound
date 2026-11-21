@@ -3,10 +3,13 @@
 ## Notes: Paladin buffing and raid helper: one key buffs party/raid (PallyPower-compatible assignments), tank guard, judgement assignments, cleanse list, paladin cooldowns, DI picker, warnings and trackers. /lb for options.
 ## X-License: GPL-3.0-or-later
 ## Author: Rheolux
-## Version: 5.0.1
+## Version: @project-version@
 ## X-Curse-Project-ID: 1794686
 ## IconTexture: Interface\AddOns\Lightbound\Media\Icon64
 ## SavedVariables: LightboundDB
+
+Libs\LibStub\LibStub.lua
+Libs\LibBound\LibBound.xml
 
 Core.lua
 Skin.lua
@@ -15,7 +18,6 @@ RighteousFury.lua
 SealTimer.lua
 TwistLogic.lua
 Twist.lua
-WellRested.lua
 Carrot.lua
 Auras.lua
 Blessings.lua
@@ -32,4 +34,3 @@ Announce.lua
 Tanks.lua
 Options.lua
 RaidWindow.lua
-Minimap.lua

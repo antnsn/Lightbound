@@ -1,5 +1,14 @@
 # Lightbound changelog
 
+## 5.1.0
+
+- **Cooldown Manager in the Lightbound look**: Blizzard's Cooldown Manager counts your buffs (Seals, Holy Shield, Righteous Fury, Blessings and more) with stacks and time left, also in combat, where addons can't read them on Forever. Lightbound gives its icons the gold edge and font, and a new **Cooldown Manager** page opens Blizzard's settings and suggests what to track. In the Blizzard skin the icons keep the game's look.
+- **Built on LibBound**, the shared core of the Bound addons (Chronobound, Stormbound, Packbound, Spiritbound, Felbound, Dreambound). Your settings, pages, skins, buff key and commands stay the same.
+- **Travel panel**: press Escape, and your Hearthstone, with the inn it's set to, sits beside the game menu. Click it to use it.
+- **Explanations in tooltips** can be turned off: Skin page, or `/lb explain`.
+- **Commands without a space**: `/lbrested`, `/lbmove`, `/lbgrid` and so on work next to `/lb rested`.
+- **Minimap button** through LibDBIcon, so minimap addons (EllesmereUI, SexyMap, ElvUI, MinimapButtonBag) can collect it. Its place is kept.
+
 ## 5.0.1
 
 - The Twist page and the drinking setting say they are a best effort, with why.

@@ -18,6 +18,14 @@ The small things: never run out of Symbols of Kings, open Lightbound from the mi
 - Symbol of Kings is only bought once you know a Greater Blessing, Symbol of Divinity once you know Divine Intervention.
 - A chat warning tells you when your Symbols of Kings run low.
 
+### Travel panel
+
+Press Escape: beside the game menu sits your Hearthstone, with the inn it's set to. Click it to use it; the menu closes. The Hearthstone row only shows while you carry one, and the panel never shows in combat.
+
+### Explanations in tooltips
+
+Hover over a card or button and the tooltip explains what it does and why. Turn the explanations off with **Explain things in tooltips** on the **Skin** page, or `/lb explain`.
+
 ### Minimap button and addon menu
 
 | Click | Does |
