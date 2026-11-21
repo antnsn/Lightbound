@@ -144,6 +144,10 @@ end
 local mine = { BuildRF, BuildAura, BuildSeal, BuildCombat, BuildBlessings, BuildKey, BuildOverview, BuildReagents }
 for i, build in ipairs(mine) do table.insert(ns.optionPages, i, build) end
 
+-- Blizzard's Cooldown Manager in the Lightbound look (it counts buffs in combat; addons can't)
+Bound.InstallCooldownSkin(ns, { suggest = { "Seals", "Holy Shield", "Righteous Fury", "Divine Favor",
+	"Vengeance", "Redoubt", "Judgements on your target", "your Blessings and Aura" } })
+
 Bound.InstallOptions(ns, {
 	header = "Paladin buffs",
 	launcher = "Paladin buffing and self-buff helper.",
