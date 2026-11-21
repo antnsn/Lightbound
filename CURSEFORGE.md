@@ -88,7 +88,9 @@ Best effort: Forever doesn't let addons read the combat log or your buffs in com
 ## Switching from PallyPower
 Log in once with PallyPower still enabled. Lightbound copies your assignments and stays quiet while PallyPower is loaded. Then disable PallyPower.
 
-Source and issues: https://github.com/antnsn/Lightbound
+## Ideas and contributions
+- **Missing something?** New features are added on request: leave a comment here.
+- **Feel free to contribute**: the code is on GitHub, https://github.com/antnsn/Lightbound (issues and pull requests welcome).
 
 ## Changelog
 <!-- changelog:start -->
