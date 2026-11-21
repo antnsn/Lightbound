@@ -3,7 +3,7 @@
 ## Notes: Paladin buffing and raid helper: one key buffs party/raid (PallyPower-compatible assignments), tank guard, judgement assignments, cleanse list, paladin cooldowns, DI picker, warnings and trackers. /lb for options.
 ## X-License: GPL-3.0-or-later
 ## Author: Rheolux
-## Version: 5.0.1
+## Version: @project-version@
 ## X-Curse-Project-ID: 1794686
 ## IconTexture: Interface\AddOns\Lightbound\Media\Icon64
 ## SavedVariables: LightboundDB
