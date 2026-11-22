@@ -10,10 +10,11 @@ if m == "off" then db.cdmSkin = false end
 wb.login({ saved = { LightboundDB = db } })
 wb.advance(7)
 local G = wb.G
+local euiLoaded = true
 if m == "ellesmere" then
 	-- EllesmereUI's Cooldown Manager draws its own icons and keeps Blizzard's invisible: we step aside
 	local loaded = G.C_AddOns.IsAddOnLoaded
-	G.C_AddOns.IsAddOnLoaded = function(name) return name == "EllesmereUICooldownManager" or loaded(name) end
+	G.C_AddOns.IsAddOnLoaded = function(name) return (name == "EllesmereUICooldownManager" and euiLoaded) or loaded(name) end
 	G.C_AddOns.DoesAddOnExist = function(name) return name == "EllesmereUICooldownManager" end
 end
 local switched = {}
@@ -144,6 +145,17 @@ if m == "ellesmere" then
 	wb.check(saves > 0, "and saves it, as the game's AddOn list does (SaveAddOns)")
 	wb.expect("shown as picked until the reload", cs.Choice(), "Lightbound")
 	wb.check(wb.printed("reload"), "and it says a reload makes it happen")
+	-- the reload: EllesmereUI puts back what its module changed, the Cooldown Manager off again; once
+	-- its cleanup has run, LibBound turns it on (the player picked it), once
+	euiLoaded = false -- after the reload EllesmereUI's module isn't loaded
+	wb.state.cvars.cooldownViewerEnabled = "0"
+	wb.fire("PLAYER_ENTERING_WORLD")
+	wb.advance(6)
+	wb.expect("after the reload: the Cooldown Manager on again", wb.state.cvars.cooldownViewerEnabled, "1")
+	wb.state.cvars.cooldownViewerEnabled = "0" -- the player turns it off later
+	wb.fire("PLAYER_ENTERING_WORLD")
+	wb.advance(6)
+	wb.expect("only once: turned off later, it stays off", wb.state.cvars.cooldownViewerEnabled, "0")
 	cs.Choose("EllesmereUI")
 	local joined = table.concat(switched, "|")
 	wb.check(joined:find("on EllesmereUICooldownManager", 1, true), "picking EllesmereUI turns it back on")
