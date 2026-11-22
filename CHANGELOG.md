@@ -1,5 +1,9 @@
 # Lightbound changelog
 
+## Unreleased
+
+- **The Cooldown Manager page is gone.** Lightbound no longer restyles Blizzard's Cooldown Manager: its icons were only a look, and it fought EllesmereUI's Cooldown Manager. To track buffs in combat, use the Cooldown Manager itself (`/cdm`, or `/eui` with EllesmereUI). If you picked Lightbound there, turn **EllesmereUI Cooldown Manager** back on in the AddOns list.
+
 ## 5.1.0
 
 - **Cooldown Manager in the Lightbound look**: Blizzard's Cooldown Manager counts your buffs (Seals, Holy Shield, Righteous Fury, Blessings and more) with stacks and time left, also in combat, where addons can't read them on Forever. Lightbound gives its icons the gold edge and font, and a new **Cooldown Manager** page opens Blizzard's settings and suggests what to track. In the Blizzard skin the icons keep the game's look.
