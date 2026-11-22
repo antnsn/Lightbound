@@ -1,4 +1,4 @@
---@moods: painted flat blizzard off late world missing combat
+--@moods: painted flat blizzard off late world missing combat ellesmere
 -- Blizzard's Cooldown Manager in the addon's skin (LibBound CooldownSkin): its icons keep working
 -- in combat (the game draws the stacks and timers, which addons can't read on Forever); the skin
 -- only changes their edge, mask and count font. Positions stay with Edit Mode.
@@ -10,6 +10,15 @@ if m == "off" then db.cdmSkin = false end
 wb.login({ saved = { LightboundDB = db } })
 wb.advance(7)
 local G = wb.G
+if m == "ellesmere" then
+	-- EllesmereUI's Cooldown Manager draws its own icons and keeps Blizzard's invisible: we step aside
+	local loaded = G.C_AddOns.IsAddOnLoaded
+	G.C_AddOns.IsAddOnLoaded = function(name) return name == "EllesmereUICooldownManager" or loaded(name) end
+	G.C_AddOns.DoesAddOnExist = function(name) return name == "EllesmereUICooldownManager" end
+end
+local switched = {}
+G.C_AddOns.DisableAddOn = function(name, who) switched[#switched + 1] = "off " .. name .. " " .. tostring(who) end
+G.C_AddOns.EnableAddOn = function(name, who) switched[#switched + 1] = "on " .. name .. " " .. tostring(who) end
 local OVERLAY = "UI-HUD-CoolDownManager-IconOverlay"
 
 -- a stand-in for one Blizzard icon: icon texture under a rounded mask, the overlay atlas, the count
@@ -92,6 +101,9 @@ else
 		wb.expect("mask back", masked(), true)
 		wb.expect("edge gone", st.border:IsShown(), false)
 		wb.check(count:GetFont() ~= wb.ns.UI.F.card or wb.ns.UI.F.card == "Fonts\\FRIZQT__.TTF", "count font back")
+	elseif m == "ellesmere" then
+		wb.expect("EllesmereUI in charge: Blizzard's icons untouched", st, nil)
+		wb.expect("overlay kept", overlay:IsShown(), true)
 	elseif m == "late" then
 		wb.expect("before the Cooldown Manager loads: untouched", st, nil)
 		Load()
@@ -118,3 +130,20 @@ end
 wb.check(found, "a Cooldown Manager page")
 wb.check(text:find("Open the Cooldown Manager", 1, true), "a button to Blizzard's settings")
 wb.check(text:find("Holy Shield", 1, true), "suggests paladin buffs to track")
+if m == "ellesmere" then
+	wb.check(text:find("EllesmereUI", 1, true), "the page says EllesmereUI's Cooldown Manager is in charge")
+	wb.check(text:find("Who draws the Cooldown Manager", 1, true), "and lets you pick who draws it")
+	local cs = wb.ns.cooldownSkin
+	wb.expect("EllesmereUI now", cs.Choice(), "EllesmereUI")
+	cs.Choose("Lightbound")
+	wb.expect("picking Lightbound turns EllesmereUI's Cooldown Manager off for this character", switched[1],
+		"off EllesmereUICooldownManager " .. tostring(wb.state.player.name or G.UnitName("player")))
+	wb.expect("shown as picked until the reload", cs.Choice(), "Lightbound")
+	wb.check(wb.printed("reload"), "and it says a reload makes it happen")
+	cs.Choose("EllesmereUI")
+	local joined = table.concat(switched, "|")
+	wb.check(joined:find("on EllesmereUICooldownManager", 1, true), "picking EllesmereUI turns it back on")
+	wb.check(joined:find("on EllesmereUI ", 1, true), "with the EllesmereUI it needs (it may be off for this character)")
+else
+	wb.check(not text:find("Who draws", 1, true), "no choice without another Cooldown Manager addon")
+end
