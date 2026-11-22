@@ -19,6 +19,8 @@ end
 local switched = {}
 G.C_AddOns.DisableAddOn = function(name, who) switched[#switched + 1] = "off " .. name .. " " .. tostring(who) end
 G.C_AddOns.EnableAddOn = function(name, who) switched[#switched + 1] = "on " .. name .. " " .. tostring(who) end
+local saves = 0
+G.C_AddOns.SaveAddOns = function() saves = saves + 1 end
 local OVERLAY = "UI-HUD-CoolDownManager-IconOverlay"
 
 -- a stand-in for one Blizzard icon: icon texture under a rounded mask, the overlay atlas, the count
@@ -137,7 +139,9 @@ if m == "ellesmere" then
 	wb.expect("EllesmereUI now", cs.Choice(), "EllesmereUI")
 	cs.Choose("Lightbound")
 	wb.expect("picking Lightbound turns EllesmereUI's Cooldown Manager off for this character", switched[1],
-		"off EllesmereUICooldownManager " .. tostring(wb.state.player.name or G.UnitName("player")))
+		"off EllesmereUICooldownManager " .. tostring(G.UnitGUID("player")))
+	wb.check(G.UnitGUID("player") ~= nil, "(the stub has a player GUID)")
+	wb.check(saves > 0, "and saves it, as the game's AddOn list does (SaveAddOns)")
 	wb.expect("shown as picked until the reload", cs.Choice(), "Lightbound")
 	wb.check(wb.printed("reload"), "and it says a reload makes it happen")
 	cs.Choose("EllesmereUI")
