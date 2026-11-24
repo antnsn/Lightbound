@@ -1,5 +1,5 @@
 -- Lightbound's option pages (/lb). LibBound builds the window, the widgets, and the shared Extras
--- (Well-Rested, Well Fed, explanations, minimap; Lightbound adds Carrot on a Stick there) and
+-- (Well-Rested, Well Fed, Carrot on a Stick, explanations, minimap) and
 -- Skin pages. Modules add their own pages through ns.optionPages; these come first.
 local _, ns = ...
 if not ns.isPaladin then return end -- not a paladin: load nothing (see Core.lua)
@@ -123,23 +123,6 @@ local function BuildReagents()
 	n:SetText("Symbol of Kings is bought once you know a Greater Blessing, Symbol of Divinity once you know Divine Intervention. 0 turns one off.")
 end
 
--- Carrot on a Stick, on the shared Extras page
-local function Carrot(_, p)
-	p:Add(Section(p, p.y - 4, "Carrot on a Stick") + 2)
-	-- one row (the page has no room for two): Off, or the trinket slot the carrot goes into
-	local CARROT_CHOICES = { "Off", "Top trinket", "Bottom trinket" }
-	p:Add(select(2, Cycle(p, p.y, "Wear it while mounted", CARROT_CHOICES,
-		function() return ns.db.carrotSwap and (ns.db.carrotSlot .. " trinket") or "Off" end,
-		function(v)
-			ns.db.carrotSwap = v ~= "Off"
-			if v ~= "Off" then ns.db.carrotSlot = v:match("^(%a+)") end
-		end,
-		function()
-			if not ns.db.carrotSwap then return "Your own trinket goes back on when you get off." end
-			return "Swaps out: " .. ns.CarrotSlotItem(ns.db.carrotSlot)
-		end)))
-end
-
 -- before the pages other modules added
 local mine = { BuildRF, BuildAura, BuildSeal, BuildCombat, BuildBlessings, BuildKey, BuildOverview, BuildReagents }
 for i, build in ipairs(mine) do table.insert(ns.optionPages, i, build) end
@@ -147,5 +130,4 @@ for i, build in ipairs(mine) do table.insert(ns.optionPages, i, build) end
 Bound.InstallOptions(ns, {
 	header = "Paladin buffs",
 	launcher = "Paladin buffing and self-buff helper.",
-	extras = Carrot,
 })

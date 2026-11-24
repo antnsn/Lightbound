@@ -1,5 +1,10 @@
 # Lightbound changelog
 
+## Unreleased
+
+- Carrot on a Stick now comes from LibBound, so every Bound addon has it. Your settings stay as they are.
+- The Extras page is tidier: the Well-Rested and Well Fed switches sit in one row each.
+
 ## 5.1.1
 
 - **The Cooldown Manager page is gone.** Lightbound no longer restyles Blizzard's Cooldown Manager: its icons were only a look, and it fought EllesmereUI's Cooldown Manager. To track buffs in combat, use the Cooldown Manager itself (`/cdm`, or `/eui` with EllesmereUI). If you picked Lightbound there, turn **EllesmereUI Cooldown Manager** back on in the AddOns list.
