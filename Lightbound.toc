@@ -18,7 +18,6 @@ RighteousFury.lua
 SealTimer.lua
 TwistLogic.lua
 Twist.lua
-Carrot.lua
 Auras.lua
 Blessings.lua
 PartyBuff.lua
