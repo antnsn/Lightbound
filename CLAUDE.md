@@ -2,6 +2,15 @@
 
 This file provides instructions and context for AI coding agents working on this project.
 
+## Skills
+
+Shared knowledge lives in Claude Code skills (plugin `wow-addons`, repo antnsn/addon-skills). Load the
+one that fits before working here; this file only holds what is specific to this repo.
+
+- `wow-addons:bound-addons`: the Bound family and LibBound: what goes where, MINOR, rolling a change out, tests, style
+- `wow-addons:forever-client`: the Forever client API: secret values, missing globals, API lookups, probing in game
+- `wow-addons:addon-release`: releasing: tag, CurseForge webhook, the token, changelog, docs, screenshots
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 
