@@ -100,7 +100,7 @@ moods; `tests/options.scenario.lua` the options and commands. When a bug can't b
 reading, add the scenario and run it (`wowbench test . -v` prints the log and the stub gaps)
 before asking for in-game probes. wowbench lives in `~/code/wowbench` (docs/scenarios.md).
 
-Nothing replaces an in-game test: `/reload` for changed files, a client restart for new files.
+Nothing replaces an in-game test: `/reload` picks up changed and new files (no client restart needed).
 
 ## Architecture Overview
 
