@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Buff key: the right rank for lower-level players**: someone more than 10 levels below a rank of their blessing gets the best rank they can take (a level 22 gets Might rank 4); someone too low for any rank is skipped, and `/lb why` says why.
 - Carrot on a Stick now comes from LibBound, so every Bound addon has it. Your settings stay as they are.
 - The Extras page is tidier: the Well-Rested and Well Fed switches sit in one row each.
 

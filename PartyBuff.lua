@@ -38,6 +38,37 @@ local function CastLeft(guid, key, guess, now)
 end
 local isSecret = ns.IsSecret -- see Core.lua
 
+-- Each blessing's ranks (spell IDs, lowest first) and their spell levels (Classic values, not yet
+-- checked on Forever). A rank goes only on someone at most 10 levels below its spell level, so a
+-- low group member gets the best rank they can take. Kings and Salvation have one rank.
+local RANKS = {
+	Might = { ids = { 19740, 19834, 19835, 19836, 19837, 19838, 25291 }, levels = { 4, 12, 22, 32, 42, 52, 60 } },
+	Wisdom = { ids = { 19742, 19850, 19852, 19853, 19854, 25290 }, levels = { 14, 24, 34, 44, 54, 60 } },
+	Light = { ids = { 19977, 19978, 19979 }, levels = { 40, 50, 60 } },
+	Sanctuary = { ids = { 20911, 20912, 20913, 20914 }, levels = { 30, 40, 50, 60 } },
+}
+local function Known(id)
+	local ok, k = pcall(IsPlayerSpell, id)
+	return ok and not isSecret(k) and k and true or false
+end
+-- for this unit: the rank's spell ID when it must be lower than your best (nil: your best will
+-- do), and false when even the first rank is too high for them
+local function RankFor(key, unit)
+	local r = RANKS[key]
+	if not r then return nil end
+	local ok, level = pcall(UnitLevel, unit)
+	if not ok or isSecret(level) or type(level) ~= "number" or level <= 0 then return nil end
+	local best
+	for i = #r.ids, 1, -1 do
+		if Known(r.ids[i]) then
+			best = best or r.ids[i]
+			if r.levels[i] <= level + 10 then return r.ids[i] ~= best and r.ids[i] or nil end
+		end
+	end
+	if best then return false end -- known, but every rank is too high for them
+	return nil
+end
+
 local function Clean(v) if isSecret(v) or v == nil then return nil end return v end -- secret check first
 
 local function SpellKnown(name)
@@ -145,7 +176,7 @@ local function Plan(why)
 	local now = GetTime()
 	local source = ns.PartyBuffSource()
 	local raid = IsInRaid()
-	local haveSymbol = (C_Item and C_Item.GetItemCount and C_Item.GetItemCount(SYMBOL_OF_KINGS) or GetItemCount(SYMBOL_OF_KINGS) or 0) > 0
+	local haveSymbol = (C_Item and C_Item.GetItemCount and C_Item.GetItemCount(SYMBOL_OF_KINGS) or GetItemCount and GetItemCount(SYMBOL_OF_KINGS) or 0) > 0
 	if why then why[#why + 1] = "from your row in the Blessings window" .. (raid and ", raid" or "") end
 	for _, unit in ipairs(Units()) do
 		if not UnitExists(unit) then
@@ -168,9 +199,13 @@ local function Plan(why)
 				local greater = "Greater Blessing of " .. key
 				local useGreater = db.pbGreater and raid and greaterOK and haveSymbol and SpellKnown(greater)
 				if useGreater then spell = greater end
+				local rank -- a Greater Blessing has no lower-level rule here
+				if not useGreater then rank = RankFor(key, unit) end
 				if not SpellKnown(spell) then
 					unlearned = unlearned or spell
 					note(unit, spell .. " not known")
+				elseif rank == false then
+					note(unit, ("too low (level %s) for any rank of %s you know"):format(tostring(UnitLevel(unit)), spell))
 				elseif not InRange(spell, unit) then
 					note(unit, "out of range for " .. spell)
 				else
@@ -182,8 +217,8 @@ local function Plan(why)
 						left = CastLeft(guid, key, useGreater and GREATER_DURATION or DURATION, now) or 0
 					end
 					if left <= refresh then
-						note(unit, "NEXT: " .. spell .. " (" .. how .. ")")
-						return { unit = unit, guid = guid, name = UnitName(unit), spell = spell, key = key }
+						note(unit, "NEXT: " .. spell .. (rank and (" (spell " .. rank .. ", a lower rank for their level)") or "") .. " (" .. how .. ")")
+						return { unit = unit, guid = guid, name = UnitName(unit), spell = spell, key = key, rank = rank or nil }
 					end
 					note(unit, key .. " has " .. math.floor(left) .. "s left (" .. how .. ")")
 				end
@@ -203,11 +238,23 @@ end
 local function Configure()
 	if InCombatLockdown() or not btn then return end
 	planned = ns.db.pbEnabled and Plan() or nil
-	if planned then
+	if planned and planned.rank then
+		-- a lower rank, by spell ID (a "(Rank 4)" name is not certain to work on Forever); combat
+		-- start clears the type (PLAYER_REGEN_DISABLED below), like [nocombat] does for the macro
+		btn:SetAttribute("pbtype", "spell")
+		btn:SetAttribute("type", "spell")
+		btn:SetAttribute("spell", planned.rank)
+		btn:SetAttribute("unit", planned.unit)
+		btn:SetAttribute("macrotext", nil)
+	elseif planned then
 		-- [nocombat]: if this setup is still on the button when combat starts, it does nothing
+		btn:SetAttribute("pbtype", "macro")
 		btn:SetAttribute("type", "macro")
 		btn:SetAttribute("macrotext", ("/cast [nocombat,@%s] %s"):format(planned.unit, planned.spell))
+		btn:SetAttribute("spell", nil)
+		btn:SetAttribute("unit", nil)
 	else
+		btn:SetAttribute("pbtype", nil)
 		btn:SetAttribute("type", nil)
 		btn:SetAttribute("macrotext", nil)
 		btn:SetAttribute("unit", nil)
@@ -259,7 +306,12 @@ end
 
 function M:Init()
 	owner = CreateFrame("Frame")
-	btn = CreateFrame("Button", BUTTON, UIParent, "SecureActionButtonTemplate")
+	btn = CreateFrame("Button", BUTTON, UIParent, "SecureActionButtonTemplate, SecureHandlerStateTemplate")
+	-- off in combat, secure: a lower rank is a plain spell action without [nocombat]; pbtype is what
+	-- Configure set, put back after the fight
+	btn:SetAttribute("_onstate-lbcombat",
+		[[ self:SetAttribute("type", (newstate == 1 or newstate == "1") and "none" or self:GetAttribute("pbtype")) ]])
+	RegisterStateDriver(btn, "lbcombat", "[combat] 1; 0")
 	btn:SetSize(1, 1)
 	btn:SetPoint("TOPLEFT", UIParent, "TOPLEFT", -100, 100) -- off screen; used only through the key
 	-- both phases, like ns.CastOverlay: the secure handler only acts on the one ActionButtonUseKeyDown
