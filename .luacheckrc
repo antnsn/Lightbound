@@ -148,7 +148,7 @@ read_globals = {
 	"UISpecialFrames",
 	"UnitAffectingCombat",
 	"UnitCanAttack",
-	"UnitClass",
+	"UnitClass", "UnitLevel",
 	"UnitCreatureType",
 	"UnitExists",
 	"UnitGroupRolesAssigned",

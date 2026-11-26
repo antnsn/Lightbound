@@ -18,6 +18,7 @@ Press one key, out of combat, and Lightbound casts the next buff that is missing
   3. **The blessings from your row in the [Blessings window](blessings-window.html)**, one group member at a time. You come first, then your party or raid.
 - It skips players who are offline, dead, too far away or out of range.
 - It also rebuffs a blessing that is about to run out (1 minute left by default).
+- **Lower-level players get the rank they can take.** A blessing only goes on someone at most 10 levels below the rank's spell level, so a level 22 gets Blessing of Might rank 4, not rank 6. Someone too low for any rank you know (Blessing of Light starts at 40) is skipped, and `/lb why` says so.
 - In a raid it uses the **Greater Blessing** when you know it and carry Symbol of Kings.
 - A small bar shows what the next press will cast, for example `Might > Thrall [SHIFT-Q]`.
 - `/lb why` prints, for every group member, what the key would do and why.
