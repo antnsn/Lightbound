@@ -10,6 +10,10 @@ Lightbound buffs your party and raid with a single key, sorts out who blesses wh
 
 **Full guide with screenshots:** https://antnsn.github.io/Lightbound/
 
+## What's new in 5.2.0
+- **The buff key gives lower-level players the rank they can take**: someone more than 10 levels below your best rank of their blessing gets the best rank they can take (a level 22 gets Blessing of Might rank 4). Someone too low for any rank is skipped, and `/lb why` says why.
+- **Carrot on a Stick** now comes from LibBound, the same in every Bound addon; your settings stay.
+
 ## What's new in 5.1.1
 - **The Cooldown Manager page is gone.** It only restyled Blizzard's Cooldown Manager icons and got in the way of EllesmereUI's. To track buffs in combat, use the Cooldown Manager itself (`/cdm`, or `/eui` with EllesmereUI). If you picked Lightbound there, turn **EllesmereUI Cooldown Manager** back on in the AddOns list.
 
@@ -108,6 +112,12 @@ Log in once with PallyPower still enabled. Lightbound copies your assignments an
 
 ## Changelog
 <!-- changelog:start -->
+### 5.2.0
+
+- **Buff key: the right rank for lower-level players**: someone more than 10 levels below a rank of their blessing gets the best rank they can take (a level 22 gets Might rank 4); someone too low for any rank is skipped, and `/lb why` says why.
+- Carrot on a Stick now comes from LibBound, so every Bound addon has it. Your settings stay as they are.
+- The Extras page is tidier: the Well-Rested and Well Fed switches sit in one row each.
+
 ### 5.1.1
 
 - **The Cooldown Manager page is gone.** Lightbound no longer restyles Blizzard's Cooldown Manager: its icons were only a look, and it fought EllesmereUI's Cooldown Manager. To track buffs in combat, use the Cooldown Manager itself (`/cdm`, or `/eui` with EllesmereUI). If you picked Lightbound there, turn **EllesmereUI Cooldown Manager** back on in the AddOns list.
