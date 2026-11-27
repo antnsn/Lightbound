@@ -1,5 +1,10 @@
 # Lightbound changelog
 
+## Unreleased
+
+- The Cleanse frame now comes from LibBound, so the other Bound addons can have it too (Spiritbound has it as Dispel). Your settings, your key and `/lb ignore` stay as they are. The Show and Layout sections on the Cleanse page are one now, so the page fits the window.
+- A player who joins the group in combat gets a ready cell in the Cleanse grid: the spare cells are now really made at login.
+
 ## 5.2.0
 
 - **Buff key: the right rank for lower-level players**: someone more than 10 levels below a rank of their blessing gets the best rank they can take (a level 22 gets Might rank 4); someone too low for any rank is skipped, and `/lb why` says why.

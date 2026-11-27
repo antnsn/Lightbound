@@ -39,9 +39,7 @@ local DEFAULTS = {
 	pbAssign = { WARRIOR = "Might", PALADIN = "Wisdom", HUNTER = "Might", ROGUE = "Might", PRIEST = "Wisdom",
 		SHAMAN = "Wisdom", MAGE = "Wisdom", WARLOCK = "Wisdom", DRUID = "Wisdom" },
 	pbPoint = { "CENTER", "UIParent", "CENTER", 0, -260 },
-	clEnabled = true, clSolo = true, clSound = true, clRows = 5, clPets = false, clIgnore = {},
-	clMode = "Grid", clPerRow = 5, clCell = 22, clNames = false, clRange = true,
-	clPoint = { "TOPLEFT", "UIParent", "CENTER", 285, 190 },
+	-- cl*: the Cleanse frame's settings are LibBound's (lib.CLEANSE_DEFAULTS, Cleanse.lua)
 	rqEnabled = true, rqSound = true, rqChat = false, rqGroupOnly = true, rqTTL = 60, rqRows = 4,
 	rqPoint = { "CENTER", "UIParent", "CENTER", 380, -40 },
 	diEnabled = true, diParty = false, diRows = 6, diAnnounce = true, diWarning = true,
@@ -109,21 +107,7 @@ ns.isPaladin = not Bound:NewAddon(addonName, ns, {
 		bless = { fn = function() if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end end, help = "the Blessings window" },
 		raid = { fn = function() if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end end, help = "the Blessings window" },
 		assign = { fn = function() if ns.ToggleRaidWindow then ns.ToggleRaidWindow() end end, help = "the Blessings window" },
-		ignore = { fn = function(arg)
-			local db = ns.db
-			db.clIgnore = db.clIgnore or {}
-			if arg and arg ~= "" then
-				arg = arg:lower()
-				db.clIgnore[arg] = not db.clIgnore[arg] or nil
-				ns.Print("cleanse list " .. (db.clIgnore[arg] and "ignores" or "no longer ignores") .. " '" .. arg .. "'")
-				if ns.CleanseIgnoreChanged then ns.CleanseIgnoreChanged() end
-			else
-				local names = {}
-				for n in pairs(db.clIgnore) do names[#names + 1] = n end
-				table.sort(names)
-				ns.Print("ignored debuffs: " .. (#names > 0 and table.concat(names, ", ") or "none") .. ". /lb ignore <name> toggles one.")
-			end
-		end, help = "ignore <debuff>: the Cleanse list ignores it (again: stops)" },
+		-- ignore <debuff>: LibBound's Cleanse.lua
 		why = { fn = function() if ns.ExplainPartyBuff then ns.ExplainPartyBuff() end end, help = "why the buff key does what it does" },
 		tank = { fn = function(arg) if ns.ToggleTank then ns.ToggleTank(arg) end end, help = "tank <name>: mark or unmark a tank" },
 		tanks = { fn = function(arg) if ns.ToggleTank then ns.ToggleTank(arg) end end, help = "tank list" },

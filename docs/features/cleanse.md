@@ -34,7 +34,7 @@ See at a glance who has a Poison, Disease or Magic debuff you can remove, and cl
 
 In `/lb`, page **Cleanse**:
 
-**Show**
+**Show and layout**
 
 | Setting | Default | What it does |
 | --- | --- | --- |
@@ -43,12 +43,7 @@ In `/lb`, page **Cleanse**:
 | Dim players out of range | On | |
 | Sound when someone new needs it | On | |
 | Show when solo | On | Just you, and your pet with pets on. Off: only in a group. |
-| Names in grid cells | Off | Three letters of each name, from 26 px cells up. |
-
-**Layout**
-
-| Setting | Default | What it does |
-| --- | --- | --- |
+| Names in cells (26 px and up) | Off | Three letters of each name, from 26 px cells up. |
 | Grid or list | Grid | Grid: a cell per group member that follows the roster in combat. List: a row per afflicted player. |
 | Grid: cells per row | 5 | 1 to 10. |
 | Grid: cell size | 22 px | 14 to 40 px. |
@@ -61,6 +56,8 @@ In `/lb`, page **Cleanse**:
 | Cleanse key | Not set | Cleanses the player under your mouse, else your target. Works in combat. |
 
 The bottom of the page lists your ignored debuffs.
+
+The frame is shared with the other Bound addons (LibBound): a priest on Spiritbound has the same one for Dispel Magic and Cure Disease.
 
 ## Good to know
 
